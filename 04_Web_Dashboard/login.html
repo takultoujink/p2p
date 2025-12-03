@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ - P2P</title>
+
+    <!-- AOS Animation Library -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" />
+
+    <!-- Firebase to Sheets Integration -->
+    <script src="./firebase-to-sheets.js"></script>
+
+    <style>
+        /* Bai Jamjuree Font Faces */
+        @font-face {
+            font-family: 'Bai Jamjuree';
+            src: url('./fonts/BaiJamjuree-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Bai Jamjuree';
+            src: url('./fonts/BaiJamjuree-Medium.ttf') format('truetype');
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Bai Jamjuree';
+            src: url('./fonts/BaiJamjuree-SemiBold.ttf') format('truetype');
+            font-weight: 600;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Bai Jamjuree';
+            src: url('./fonts/BaiJamjuree-Bold.ttf') format('truetype');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Bai Jamjuree';
+            src: url('./fonts/BaiJamjuree-Light.ttf') format('truetype');
+            font-weight: 300;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Bai Jamjuree';
+            src: url('./fonts/BaiJamjuree-ExtraLight.ttf') format('truetype');
+            font-weight: 200;
+            font-style: normal;
+        }
+
+        :root {
+            --bg: #fdfbff;
+            --bg-secondary: #f8f4ff;
+            --card: #ffffff;
+            --text: #2d1b4e;
+            --muted: #6b5b73;
+            --brand: #a78bfa;
+            --brand-2: #67e8f9;
+            --accent: #fb7185;
+            --accent-2: #4ade80;
+            --accent-3: #fbbf24;
+            --radius-xl: 24px;
+            --radius: 16px;
+            --shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-soft: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Bai Jamjuree', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans Thai", "Noto Sans", "Liberation Sans", sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text);
+        }
+
+        /* Pastel floating shapes */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 15% 25%, var(--brand) 0%, transparent 30%),
+                radial-gradient(circle at 85% 15%, var(--brand-2) 0%, transparent 25%),
+                radial-gradient(circle at 30% 80%, var(--accent) 0%, transparent 20%),
+                radial-gradient(circle at 80% 75%, var(--accent-2) 0%, transparent 25%),
+                radial-gradient(circle at 95% 50%, var(--accent-3) 0%, transparent 15%);
+            background-size: 600px 600px, 500px 500px, 550px 550px, 400px 400px, 350px 350px;
+            opacity: 0.12;
+            animation: floatPastel 50s ease-in-out infinite;
+            z-index: -1;
+            pointer-events: none !important;
+        }
+
+        @keyframes floatPastel {
+
+            0%,
+            100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            25% {
+                transform: translate(-15px, -20px) rotate(90deg);
+            }
+
+            50% {
+                transform: translate(10px, -15px) rotate(180deg);
+            }
+
+            75% {
+                transform: translate(-8px, 18px) rotate(270deg);
+            }
+        }
+
+        .login-container {
+            background: var(--card);
+            padding: 3rem;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 420px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(167, 139, 250, 0.1);
+            position: relative;
+            overflow: visible;
+            animation: float-gentle 6s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes float-gentle {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(135deg, var(--brand), var(--brand-2));
+            pointer-events: none !important;
+            z-index: -1;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        .logo-img-main {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-soft);
+            border: 3px solid rgba(167, 139, 250, 0.2);
+            margin: 0 auto 1.5rem;
+            display: block;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, var(--brand), var(--brand-2));
+            animation: bounce-gentle 3s ease-in-out infinite;
+            cursor: pointer;
+            pointer-events: auto !important;
+            z-index: 100;
+            position: relative;
+        }
+
+        .logo-img-main:hover {
+            transform: scale(1.05) rotate(5deg);
+            border-color: var(--brand);
+            box-shadow: var(--shadow);
+        }
+
+        @keyframes bounce-gentle {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .login-header h1 {
+            color: var(--text);
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--brand), var(--brand-2), var(--accent));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% 200%;
+            animation: rainbow-text 3s ease-in-out infinite;
+        }
+
+        @keyframes rainbow-text {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        .login-header p {
+            color: var(--muted);
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 1.8rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.7rem;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid rgba(167, 139, 250, 0.2);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            background: var(--bg);
+            color: var(--text);
+            transition: all 0.3s ease;
+            font-family: inherit;
+            pointer-events: auto !important;
+            cursor: text !important;
+            z-index: 100;
+            position: relative;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--brand);
+            background: var(--card);
+            box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .form-group input::placeholder {
+            color: var(--muted);
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 100;
+        }
+
+        .forgot-password a {
+            color: var(--brand);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 100;
+            position: relative;
+        }
+
+        .forgot-password a:hover {
+            color: var(--brand-2);
+            transform: translateX(-2px);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 50%, var(--accent) 100%);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer !important;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+            overflow: hidden;
+            background-size: 200% 200%;
+            animation: glow-pulse 2s ease-in-out infinite;
+            pointer-events: auto !important;
+            z-index: 100;
+        }
+
+        @keyframes glow-pulse {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+                box-shadow: var(--shadow-soft);
+            }
+
+            50% {
+                background-position: 100% 50%;
+                box-shadow: 0 0 20px rgba(167, 139, 250, 0.4);
+            }
+        }
+
+        .login-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+            pointer-events: none !important;
+        }
+
+        .login-btn:hover::before {
+            left: 100%;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+        }
+
+        .login-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e1e5e9;
+            pointer-events: none !important;
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 1rem;
+            color: #666;
+            font-size: 0.9rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .social-login {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 100;
+        }
+
+        .social-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: var(--radius);
+            background: white;
+            cursor: pointer !important;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--text);
+            position: relative;
+            overflow: hidden;
+            pointer-events: auto !important;
+            z-index: 100;
+        }
+
+        .social-btn:hover {
+            border-color: #4285f4;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: var(--shadow-soft);
+            animation: wiggle 0.5s ease-in-out;
+        }
+
+        @keyframes wiggle {
+
+            0%,
+            100% {
+                transform: translateY(-2px) scale(1.02) rotate(0deg);
+            }
+
+            25% {
+                transform: translateY(-2px) scale(1.02) rotate(1deg);
+            }
+
+            75% {
+                transform: translateY(-2px) scale(1.02) rotate(-1deg);
+            }
+        }
+
+        .social-btn:active {
+            transform: translateY(0);
+        }
+
+        .google-btn {
+            border-color: #4285f4;
+            color: #4285f4;
+        }
+
+        .google-btn:hover {
+            background: #4285f4;
+            color: white;
+        }
+
+        .register-link {
+            text-align: center;
+            color: #666;
+            position: relative;
+            z-index: 100;
+        }
+
+        .register-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            z-index: 100;
+            position: relative;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin: 15px 0;
+            border: 1px solid #fcc;
+            font-size: 14px;
+            animation: slideDown 0.3s ease;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #363;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin: 15px 0;
+            border: 1px solid #cfc;
+            font-size: 14px;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            opacity: 0.7;
+            pointer-events: none !important;
+        }
+
+        button:disabled,
+        .login-btn:disabled,
+        .social-btn:disabled {
+            cursor: default !important;
+            opacity: 0.6;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            cursor: pointer !important;
+            font-size: 1.5rem;
+            pointer-events: auto !important;
+            z-index: 1000;
+        }
+
+        /* Critical Clickability Fixes */
+        button,
+        a,
+        input,
+        textarea,
+        select,
+        form {
+            pointer-events: auto !important;
+        }
+
+        [data-aos] {
+            pointer-events: auto !important;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 2rem;
+                margin: 1rem;
+            }
+
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .social-login {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <a href="index.html" style="display: inline-block; text-decoration: none;">
+                <img src="p2p.jpg" alt="P2P Logo" class="logo-img-main">
+            </a>
+            <h1>เข้าสู่ระบบ</h1>
+            <p>ยินดีต้อนรับเข้าสู่ P2P</p>
+
+            <!-- Theme Toggle Button -->
+            <button id="themeToggle" type="button" class="theme-toggle" aria-label="เปลี่ยนธีม">
+                <span id="themeIcon">🌙</span>
+            </button>
+        </div>
+
+        <!-- Social Login Buttons -->
+        <div class="social-login">
+            <button type="button" class="social-btn google-btn" id="googleSignIn">
+                <svg width="18" height="18" viewBox="0 0 24 24">
+                    <path fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                เข้าสู่ระบบด้วย Google
+            </button>
+        </div>
+
+        <div class="divider">
+            <span>หรือ</span>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">อีเมล</label>
+                <input type="email" id="email" name="email" placeholder="กรอกอีเมล" required>
+            </div>
+            <div class="form-group">
+                <label for="studentIdCard">เลขประจำตัวนักเรียน</label>
+                <input type="text" id="studentIdCard" name="studentIdCard" placeholder="กรอกเลขประจำตัวนักเรียน"
+                    required>
+            </div>
+            <div class="form-group">
+                <label for="password">รหัสผ่าน</label>
+                <input type="password" id="password" name="password" placeholder="กรอกรหัสผ่าน" required>
+            </div>
+
+            <div class="forgot-password">
+                <a href="reset-password.html">ลืมรหัสผ่าน?</a>
+            </div>
+
+            <button type="submit" class="login-btn">เข้าสู่ระบบ</button>
+        </form>
+
+        <div class="register-link">
+            ยังไม่มีบัญชี? <a href="register.html">สมัครสมาชิก</a>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAmw1lDRZIxYKDblO8nhS3SR5aTVCVPJbg",
+            authDomain: "takultoujink.firebaseapp.com",
+            projectId: "takultoujink",
+            storageBucket: "takultoujink.firebasestorage.app",
+            messagingSenderId: "865462073491",
+            appId: "1:865462073491:web:5985dfd8a0e91b71fa3566",
+            measurementId: "G-ZVXD02VSWF"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Configure Google Auth Provider
+        const googleProvider = new GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.addScope('profile');
+        googleProvider.setCustomParameters({
+            prompt: 'select_account'
+        });
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const darkVars = {
+            '--bg': '#181825',
+            '--bg-secondary': '#232336',
+            '--card': '#232336',
+            '--text': '#f3f3fa',
+            '--muted': '#b3b3c6'
+        };
+
+        function setTheme(dark) {
+            for (const [k, v] of Object.entries(dark ? darkVars : {
+                '--bg': '#fdfbff',
+                '--bg-secondary': '#f8f4ff',
+                '--card': '#ffffff',
+                '--text': '#2d1b4e',
+                '--muted': '#6b5b73'
+            })) {
+                document.documentElement.style.setProperty(k, v);
+            }
+            themeIcon.textContent = dark ? '☀️' : '🌙';
+            localStorage.setItem('theme', dark ? 'dark' : 'light');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = localStorage.getItem('theme') === 'dark';
+            setTheme(!isDark);
+        });
+
+        (function () {
+            const saved = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            setTheme(saved === 'dark' || (!saved && prefersDark));
+        })();
+
+        // Show loading state
+        function showLoading(element, show, originalText) {
+            if (show) {
+                element.innerHTML = '<span>กำลังดำเนินการ...</span>';
+                element.disabled = true;
+                element.classList.add('loading');
+            } else {
+                element.innerHTML = originalText;
+                element.disabled = false;
+                element.classList.remove('loading');
+            }
+        }
+
+        // Show message
+        function showMessage(message, type = 'error') {
+            const existingMessages = document.querySelectorAll('.error-message, .success-message');
+            existingMessages.forEach(msg => msg.remove());
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            messageDiv.textContent = message;
+            document.querySelector('.login-header').after(messageDiv);
+            setTimeout(() => messageDiv.remove(), 5000);
+        }
+
+        // Save user profile
+        async function saveUserProfile(user, additionalData = {}) {
+            try {
+                const userRef = doc(db, 'users', user.uid);
+                const userDoc = await getDoc(userRef);
+
+                if (!userDoc.exists()) {
+                    await setDoc(userRef, {
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName,
+                        photoURL: user.photoURL,
+                        provider: user.providerData[0]?.providerId || 'email',
+                        createdAt: new Date(),
+                        lastLogin: new Date(),
+                        ...additionalData
+                    });
+                } else {
+                    await setDoc(userRef, {
+                        lastLogin: new Date()
+                    }, { merge: true });
+                }
+            } catch (error) {
+                console.error('Error saving user profile:', error);
+            }
+        }
+
+        // Handle successful login
+        async function handleLoginSuccess(user) {
+            console.log('เข้าสู่ระบบสำเร็จ:', user.email);
+            await saveUserProfile(user);
+
+            try {
+                const loginData = {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName || user.email,
+                    provider: user.providerData[0]?.providerId || 'email',
+                    loginTime: new Date().toISOString(),
+                    userAgent: navigator.userAgent
+                };
+
+                if (typeof sendUserLoginToSheets === 'function') {
+                    await sendUserLoginToSheets(loginData, '1qemalIVHWjZ_7uTrlyTZ6I1B9MqoD6gyyv9_E5fiOmQ');
+                }
+            } catch (sheetsError) {
+                console.error('Error sending login data to Google Sheets:', sheetsError);
+            }
+
+            showMessage(`เข้าสู่ระบบสำเร็จ! ยินดีต้อนรับ ${user.displayName || user.email}`, 'success');
+
+            sessionStorage.setItem('user', JSON.stringify({
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL
+            }));
+
+            // Persist a username for the barcode dashboard
+            try {
+                const usernameForBarcode = (user.displayName && user.displayName.trim()) ? user.displayName : user.email || user.uid;
+                localStorage.setItem('username', usernameForBarcode);
+            } catch (e) {
+                console.warn('Could not save username to localStorage', e);
+            }
+
+            // Try to obtain and persist studentId from Firestore user document (if present)
+            try {
+                const userRef = doc(db, 'users', user.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    const udata = userSnap.data();
+                    if (udata && udata.studentId) {
+                        try { localStorage.setItem('studentId', udata.studentId); } catch (e) { console.warn('Could not save studentId', e); }
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not read user doc for studentId', e);
+            }
+
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 1500);
+        }
+
+        // Google Sign-In
+        document.getElementById('googleSignIn').addEventListener('click', async function (e) {
+            e.preventDefault();
+            const originalText = this.innerHTML;
+            showLoading(this, true, originalText);
+
+            try {
+                const result = await signInWithPopup(auth, googleProvider);
+                await handleLoginSuccess(result.user);
+            } catch (error) {
+                console.error('Google Sign-In Error:', error);
+                let errorMessage = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google';
+
+                switch (error.code) {
+                    case 'auth/popup-closed-by-user':
+                        errorMessage = 'การเข้าสู่ระบบถูกยกเลิกโดยผู้ใช้';
+                        break;
+                    case 'auth/popup-blocked':
+                        errorMessage = 'กรุณาอนุญาตให้เปิด popup ในเบราว์เซอร์';
+                        break;
+                }
+                showMessage(errorMessage);
+            } finally {
+                showLoading(this, false, originalText);
+            }
+        });
+
+        // Email/Password login
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const studentId = document.getElementById('studentIdCard').value.trim();
+
+            if (!email || !password || !studentId) {
+                showMessage('กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+            }
+
+            const submitBtn = this.querySelector('.login-btn');
+            const originalText = submitBtn.innerHTML;
+            showLoading(submitBtn, true, originalText);
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                try { localStorage.setItem('studentId', studentId); } catch (e) { console.warn('Could not save studentId', e); }
+                await handleLoginSuccess(userCredential.user);
+            } catch (error) {
+                console.error('Login error:', error);
+                let errorMessage = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        errorMessage = 'ไม่พบผู้ใช้นี้ในระบบ';
+                        break;
+                    case 'auth/wrong-password':
+                        errorMessage = 'รหัสผ่านไม่ถูกต้อง';
+                        break;
+                    case 'auth/invalid-email':
+                        errorMessage = 'รูปแบบอีเมลไม่ถูกต้อง';
+                        break;
+                }
+                showMessage(errorMessage);
+            } finally {
+                showLoading(submitBtn, false, originalText);
+            }
+        });
+
+        // Check if user is already logged in
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log('ผู้ใช้เข้าสู่ระบบอยู่แล้ว:', user.email);
+            }
+        });
+    </script>
+
+    <!-- AOS Animation Library Script -->
+    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+    <script>
+        // Initialize AOS with minimal settings to avoid blocking clicks
+        AOS.init({
+            duration: 600,
+            easing: 'ease-in-out',
+            once: true,
+            mirror: false,
+            offset: 50,
+            disable: false
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: object-detection
+  labels:
+    name: object-detection
+    environment: production
+    app: object-detection-api
+  annotations:
+    description: "Namespace for Object Detection API and related services"

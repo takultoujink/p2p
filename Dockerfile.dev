@@ -1,0 +1,52 @@
+# Development Dockerfile with debugging support
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH="/app"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libopencv-dev \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    curl \
+    git \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and install Python dependencies
+COPY requirements.txt requirements-dev.txt ./
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt && \
+    pip install -r requirements-dev.txt
+
+# Install development tools
+RUN pip install \
+    debugpy \
+    pytest-watch \
+    black \
+    flake8 \
+    mypy \
+    pre-commit
+
+# Create directories
+RUN mkdir -p /app/uploads /app/models /app/logs
+
+# Copy application code (will be overridden by volume in docker-compose)
+COPY . .
+
+# Expose ports
+EXPOSE 8000 5678
+
+# Default command for development
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]

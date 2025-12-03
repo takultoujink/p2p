@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection API - Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+        }
+        
+        .api-key-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .api-key-input input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            placeholder-color: rgba(255,255,255,0.7);
+        }
+        
+        .api-key-input input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .sidebar h3 {
+            margin-bottom: 15px;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+        
+        .endpoint-list {
+            list-style: none;
+        }
+        
+        .endpoint-item {
+            margin-bottom: 8px;
+        }
+        
+        .endpoint-link {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #4a5568;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .endpoint-link:hover {
+            background: #f7fafc;
+            color: #667eea;
+        }
+        
+        .endpoint-link.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .method-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-right: 8px;
+            min-width: 45px;
+            text-align: center;
+        }
+        
+        .method-get { background: #48bb78; color: white; }
+        .method-post { background: #ed8936; color: white; }
+        .method-put { background: #4299e1; color: white; }
+        .method-delete { background: #f56565; color: white; }
+        
+        .main-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .endpoint-details {
+            display: none;
+        }
+        
+        .endpoint-details.active {
+            display: block;
+        }
+        
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .endpoint-header .method-badge {
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            margin-right: 15px;
+        }
+        
+        .endpoint-path {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            color: #2d3748;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section h4 {
+            color: #4a5568;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .parameter-group {
+            margin-bottom: 15px;
+        }
+        
+        .parameter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .parameter-group input,
+        .parameter-group select,
+        .parameter-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+        
+        .parameter-group input:focus,
+        .parameter-group select:focus,
+        .parameter-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .parameter-group textarea {
+            height: 120px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+        
+        .parameter-info {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 5px;
+        }
+        
+        .required {
+            color: #e53e3e;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .response-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+        }
+        
+        .response-tabs {
+            display: flex;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .response-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .response-tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .response-content {
+            display: none;
+        }
+        
+        .response-content.active {
+            display: block;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .status-200 { background: #48bb78; color: white; }
+        .status-400 { background: #ed8936; color: white; }
+        .status-401 { background: #f56565; color: white; }
+        .status-500 { background: #9f7aea; color: white; }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #718096;
+        }
+        
+        .loading-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .file-upload {
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+        
+        .file-upload.dragover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+        
+        .file-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .sidebar {
+                position: static;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>🔍 Object Detection API Explorer</h1>
+            <div class="api-key-input">
+                <label for="globalApiKey" style="color: rgba(255,255,255,0.9);">API Key:</label>
+                <input type="password" id="globalApiKey" placeholder="Enter your API key">
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h3>📋 API Endpoints</h3>
+            <ul class="endpoint-list">
+                <li class="endpoint-item">
+                    <div class="endpoint-link active" data-endpoint="detect-image">
+                        <span class="method-badge method-post">POST</span>
+                        <span>Detect Objects</span>
+                    </div>
+                </li>
+                <li class="endpoint-item">
+                    <div class="endpoint-link" data-endpoint="detect-video">
+                        <span class="method-badge method-post">POST</span>
+                        <span>Video Detection</span>
+                    </div>
+                </li>
+                <li class="endpoint-item">
+                    <div class="endpoint-link" data-endpoint="models">
+                        <span class="method-badge method-get">GET</span>
+                        <span>List Models</span>
+                    </div>
+                </li>
+                <li class="endpoint-item">
+                    <div class="endpoint-link" data-endpoint="analytics">
+                        <span class="method-badge method-get">GET</span>
+                        <span>Usage Analytics</span>
+                    </div>
+                </li>
+                <li class="endpoint-item">
+                    <div class="endpoint-link" data-endpoint="health">
+                        <span class="method-badge method-get">GET</span>
+                        <span>Health Check</span>
+                    </div>
+                </li>
+                <li class="endpoint-item">
+                    <div class="endpoint-link" data-endpoint="stream">
+                        <span class="method-badge method-get">GET</span>
+                        <span>Stream Results</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="main-content">
+            <!-- Detect Image Endpoint -->
+            <div class="endpoint-details active" id="detect-image">
+                <div class="endpoint-header">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="endpoint-path">/v1/detect/image</span>
+                </div>
+                
+                <p style="margin-bottom: 20px; color: #718096;">
+                    Upload an image and detect objects using various AI models. Supports multiple image formats and returns detailed detection results with bounding boxes and confidence scores.
+                </p>
+                
+                <div class="section">
+                    <h4>📁 File Upload</h4>
+                    <div class="file-upload" id="imageUpload">
+                        <div>📸 Click to upload image or drag & drop</div>
+                        <div class="file-info">Supported formats: JPG, PNG, GIF, WebP (Max: 10MB)</div>
+                        <input type="file" id="imageFile" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h4>⚙️ Parameters</h4>
+                    <div class="parameter-group">
+                        <label for="imageModel">Model <span class="required">*</span></label>
+                        <select id="imageModel">
+                            <option value="yolo">YOLO v8 (Fast & Accurate)</option>
+                            <option value="rcnn">R-CNN (High Precision)</option>
+                            <option value="ssd">SSD MobileNet (Lightweight)</option>
+                            <option value="efficientdet">EfficientDet (Balanced)</option>
+                        </select>
+                        <div class="parameter-info">Choose the detection model based on your speed/accuracy requirements</div>
+                    </div>
+                    
+                    <div class="parameter-group">
+                        <label for="imageConfidence">Confidence Threshold</label>
+                        <input type="range" id="imageConfidence" min="0.1" max="1" step="0.1" value="0.5">
+                        <div class="parameter-info">Minimum confidence score for detections (0.1 - 1.0). Current: <span id="imageConfidenceValue">0.5</span></div>
+                    </div>
+                    
+                    <div class="parameter-group">
+                        <label for="imageClasses">Filter Classes (Optional)</label>
+                        <input type="text" id="imageClasses" placeholder="person,car,bicycle">
+                        <div class="parameter-info">Comma-separated list of object classes to detect. Leave empty for all classes.</div>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="executeRequest('detect-image')">
+                    🚀 Detect Objects
+                </button>
+            </div>
+            
+            <!-- Video Detection Endpoint -->
+            <div class="endpoint-details" id="detect-video">
+                <div class="endpoint-header">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="endpoint-path">/v1/detect/video</span>
+                </div>
+                
+                <p style="margin-bottom: 20px; color: #718096;">
+                    Upload a video file for frame-by-frame object detection. Returns timestamped detection results for each frame.
+                </p>
+                
+                <div class="section">
+                    <h4>📁 File Upload</h4>
+                    <div class="file-upload" id="videoUpload">
+                        <div>🎥 Click to upload video or drag & drop</div>
+                        <div class="file-info">Supported formats: MP4, AVI, MOV, WebM (Max: 100MB)</div>
+                        <input type="file" id="videoFile" accept="video/*" style="display: none;">
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h4>⚙️ Parameters</h4>
+                    <div class="parameter-group">
+                        <label for="videoModel">Model <span class="required">*</span></label>
+                        <select id="videoModel">
+                            <option value="yolo">YOLO v8</option>
+                            <option value="ssd">SSD MobileNet</option>
+                        </select>
+                    </div>
+                    
+                    <div class="parameter-group">
+                        <label for="videoFps">Frame Rate (FPS)</label>
+                        <input type="number" id="videoFps" value="1" min="0.1" max="30" step="0.1">
+                        <div class="parameter-info">Frames per second to process (0.1 - 30). Higher values = more detailed analysis but slower processing.</div>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="executeRequest('detect-video')">
+                    🎬 Process Video
+                </button>
+            </div>
+            
+            <!-- Models Endpoint -->
+            <div class="endpoint-details" id="models">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/v1/models</span>
+                </div>
+                
+                <p style="margin-bottom: 20px; color: #718096;">
+                    Get a list of available detection models with their capabilities and performance characteristics.
+                </p>
+                
+                <button class="btn" onclick="executeRequest('models')">
+                    📋 Get Models
+                </button>
+            </div>
+            
+            <!-- Analytics Endpoint -->
+            <div class="endpoint-details" id="analytics">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/v1/analytics/usage</span>
+                </div>
+                
+                <p style="margin-bottom: 20px; color: #718096;">
+                    Get usage statistics and analytics for your API account including request counts, processing times, and quota information.
+                </p>
+                
+                <div class="section">
+                    <h4>⚙️ Parameters</h4>
+                    <div class="parameter-group">
+                        <label for="analyticsPeriod">Time Period</label>
+                        <select id="analyticsPeriod">
+                            <option value="1h">Last Hour</option>
+                            <option value="24h" selected>Last 24 Hours</option>
+                            <option value="7d">Last 7 Days</option>
+                            <option value="30d">Last 30 Days</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="executeRequest('analytics')">
+                    📊 Get Analytics
+                </button>
+            </div>
+            
+            <!-- Health Check Endpoint -->
+            <div class="endpoint-details" id="health">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/v1/health</span>
+                </div>
+                
+                <p style="margin-bottom: 20px; color: #718096;">
+                    Check the health status of the API service including system status, model availability, and response times.
+                </p>
+                
+                <button class="btn" onclick="executeRequest('health')">
+                    ❤️ Check Health
+                </button>
+            </div>
+            
+            <!-- Stream Endpoint -->
+            <div class="endpoint-details" id="stream">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/v1/detect/stream/{session_id}</span>
+                </div>
+                
+                <p style="margin-bottom: 20px; color: #718096;">
+                    Connect to a real-time detection stream using Server-Sent Events (SSE) for live video processing results.
+                </p>
+                
+                <div class="section">
+                    <h4>⚙️ Parameters</h4>
+                    <div class="parameter-group">
+                        <label for="sessionId">Session ID <span class="required">*</span></label>
+                        <input type="text" id="sessionId" placeholder="Enter session ID">
+                        <div class="parameter-info">Unique identifier for the detection session</div>
+                    </div>
+                </div>
+                
+                <button class="btn" onclick="executeRequest('stream')" id="streamBtn">
+                    📡 Connect to Stream
+                </button>
+                <button class="btn" onclick="disconnectStream()" id="disconnectBtn" style="display: none; background: #f56565;">
+                    ⏹️ Disconnect
+                </button>
+            </div>
+            
+            <!-- Response Section -->
+            <div class="response-section" id="responseSection" style="display: none;">
+                <h4>📤 Response</h4>
+                
+                <div class="loading" id="loadingIndicator">
+                    <div class="loading-spinner"></div>
+                    <div>Processing request...</div>
+                </div>
+                
+                <div id="responseData" style="display: none;">
+                    <div class="response-tabs">
+                        <div class="response-tab active" data-tab="formatted">Formatted</div>
+                        <div class="response-tab" data-tab="raw">Raw JSON</div>
+                        <div class="response-tab" data-tab="headers">Headers</div>
+                    </div>
+                    
+                    <div class="response-content active" id="formatted">
+                        <div id="formattedResponse"></div>
+                    </div>
+                    
+                    <div class="response-content" id="raw">
+                        <div class="code-block" id="rawResponse"></div>
+                    </div>
+                    
+                    <div class="response-content" id="headers">
+                        <div class="code-block" id="responseHeaders"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentStream = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            updateConfidenceDisplay();
+        });
+        
+        function initializeEventListeners() {
+            // Sidebar navigation
+            document.querySelectorAll('.endpoint-link').forEach(link => {
+                link.addEventListener('click', () => switchEndpoint(link.dataset.endpoint));
+            });
+            
+            // Response tabs
+            document.querySelectorAll('.response-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchResponseTab(tab.dataset.tab));
+            });
+            
+            // File uploads
+            setupFileUpload('imageUpload', 'imageFile');
+            setupFileUpload('videoUpload', 'videoFile');
+            
+            // Confidence slider
+            document.getElementById('imageConfidence').addEventListener('input', updateConfidenceDisplay);
+        }
+        
+        function setupFileUpload(uploadId, inputId) {
+            const uploadArea = document.getElementById(uploadId);
+            const fileInput = document.getElementById(inputId);
+            
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', (e) => handleDrop(e, fileInput));
+            
+            fileInput.addEventListener('change', (e) => displayFileInfo(e.target, uploadArea));
+        }
+        
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('dragover');
+        }
+        
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('dragover');
+        }
+        
+        function handleDrop(event, fileInput) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                displayFileInfo(fileInput, event.currentTarget);
+            }
+        }
+        
+        function displayFileInfo(fileInput, uploadArea) {
+            const file = fileInput.files[0];
+            if (file) {
+                const fileInfo = uploadArea.querySelector('.file-info');
+                fileInfo.textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                fileInfo.style.color = '#48bb78';
+            }
+        }
+        
+        function updateConfidenceDisplay() {
+            const slider = document.getElementById('imageConfidence');
+            const display = document.getElementById('imageConfidenceValue');
+            display.textContent = slider.value;
+        }
+        
+        function switchEndpoint(endpointId) {
+            // Update sidebar
+            document.querySelectorAll('.endpoint-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`[data-endpoint="${endpointId}"]`).classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.endpoint-details').forEach(detail => {
+                detail.classList.remove('active');
+            });
+            document.getElementById(endpointId).classList.add('active');
+            
+            // Hide response section
+            document.getElementById('responseSection').style.display = 'none';
+        }
+        
+        function switchResponseTab(tabName) {
+            document.querySelectorAll('.response-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            document.querySelectorAll('.response-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+        }
+        
+        async function executeRequest(endpoint) {
+            const responseSection = document.getElementById('responseSection');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const responseData = document.getElementById('responseData');
+            
+            // Show response section and loading
+            responseSection.style.display = 'block';
+            loadingIndicator.style.display = 'block';
+            responseData.style.display = 'none';
+            
+            try {
+                let result;
+                
+                switch (endpoint) {
+                    case 'detect-image':
+                        result = await simulateImageDetection();
+                        break;
+                    case 'detect-video':
+                        result = await simulateVideoDetection();
+                        break;
+                    case 'models':
+                        result = await simulateModelsRequest();
+                        break;
+                    case 'analytics':
+                        result = await simulateAnalyticsRequest();
+                        break;
+                    case 'health':
+                        result = await simulateHealthCheck();
+                        break;
+                    case 'stream':
+                        result = await startStream();
+                        break;
+                    default:
+                        throw new Error('Unknown endpoint');
+                }
+                
+                displayResponse(result);
+                
+            } catch (error) {
+                displayError(error);
+            } finally {
+                loadingIndicator.style.display = 'none';
+                responseData.style.display = 'block';
+            }
+        }
+        
+        async function simulateImageDetection() {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            return {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Processing-Time': '1.23s',
+                    'X-Model-Used': 'yolo-v8'
+                },
+                data: {
+                    success: true,
+                    processing_time: 1.23,
+                    image_info: {
+                        width: 1920,
+                        height: 1080,
+                        format: "JPEG",
+                        size_bytes: 2048576
+                    },
+                    detections: [
+                        {
+                            class: "person",
+                            confidence: 0.95,
+                            bbox: { x: 100, y: 150, width: 200, height: 400 }
+                        },
+                        {
+                            class: "car",
+                            confidence: 0.87,
+                            bbox: { x: 500, y: 300, width: 300, height: 200 }
+                        }
+                    ],
+                    model_used: document.getElementById('imageModel').value,
+                    confidence_threshold: parseFloat(document.getElementById('imageConfidence').value)
+                }
+            };
+        }
+        
+        async function simulateVideoDetection() {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            
+            return {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Processing-Time': '45.67s'
+                },
+                data: {
+                    success: true,
+                    processing_time: 45.67,
+                    video_info: {
+                        duration: 30.5,
+                        fps: 24,
+                        width: 1920,
+                        height: 1080,
+                        frames_processed: 732
+                    },
+                    detections_by_frame: [
+                        {
+                            timestamp: 0.0,
+                            frame_number: 0,
+                            detections: [
+                                { class: "person", confidence: 0.92, bbox: { x: 100, y: 150, width: 200, height: 400 } }
+                            ]
+                        },
+                        {
+                            timestamp: 1.0,
+                            frame_number: 24,
+                            detections: [
+                                { class: "person", confidence: 0.89, bbox: { x: 120, y: 155, width: 195, height: 390 } },
+                                { class: "car", confidence: 0.76, bbox: { x: 600, y: 400, width: 250, height: 150 } }
+                            ]
+                        }
+                    ],
+                    summary: {
+                        total_detections: 1456,
+                        unique_classes: ["person", "car", "bicycle"],
+                        avg_confidence: 0.84
+                    }
+                }
+            };
+        }
+        
+        async function simulateModelsRequest() {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            return {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    models: [
+                        {
+                            id: "yolo",
+                            name: "YOLO v8",
+                            description: "Fast and accurate object detection",
+                            version: "8.0.0",
+                            classes: 80,
+                            input_size: [640, 640],
+                            avg_inference_time: "50ms",
+                            accuracy: "mAP 53.9%"
+                        },
+                        {
+                            id: "rcnn",
+                            name: "Faster R-CNN",
+                            description: "High precision object detection",
+                            version: "1.0.0",
+                            classes: 80,
+                            input_size: [800, 800],
+                            avg_inference_time: "200ms",
+                            accuracy: "mAP 42.0%"
+                        }
+                    ]
+                }
+            };
+        }
+        
+        async function simulateAnalyticsRequest() {
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            const period = document.getElementById('analyticsPeriod').value;
+            
+            return {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    period: period,
+                    total_requests: 1247,
+                    successful_requests: 1198,
+                    failed_requests: 49,
+                    avg_processing_time: 1.34,
+                    quota: {
+                        limit: 10000,
+                        used: 1247,
+                        remaining: 8753,
+                        reset_date: "2024-01-01T00:00:00Z"
+                    },
+                    popular_models: [
+                        { model: "yolo", usage_count: 856 },
+                        { model: "ssd", usage_count: 342 },
+                        { model: "rcnn", usage_count: 49 }
+                    ]
+                }
+            };
+        }
+        
+        async function simulateHealthCheck() {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            return {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    status: "healthy",
+                    timestamp: new Date().toISOString(),
+                    version: "1.0.0",
+                    uptime: "7d 14h 32m",
+                    services: {
+                        database: "healthy",
+                        storage: "healthy",
+                        models: "healthy"
+                    },
+                    performance: {
+                        avg_response_time: "120ms",
+                        requests_per_minute: 45,
+                        cpu_usage: "23%",
+                        memory_usage: "67%"
+                    }
+                }
+            };
+        }
+        
+        async function startStream() {
+            const sessionId = document.getElementById('sessionId').value;
+            if (!sessionId) {
+                throw new Error('Session ID is required');
+            }
+            
+            // Simulate stream connection
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            const streamBtn = document.getElementById('streamBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            
+            streamBtn.style.display = 'none';
+            disconnectBtn.style.display = 'inline-flex';
+            
+            // Simulate streaming data
+            currentStream = {
+                sessionId: sessionId,
+                connected: true,
+                messages: []
+            };
+            
+            return {
+                status: 200,
+                headers: {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache'
+                },
+                data: {
+                    message: "Stream connected successfully",
+                    session_id: sessionId,
+                    stream_url: `/v1/detect/stream/${sessionId}`
+                }
+            };
+        }
+        
+        function disconnectStream() {
+            if (currentStream) {
+                currentStream.connected = false;
+                currentStream = null;
+            }
+            
+            document.getElementById('streamBtn').style.display = 'inline-flex';
+            document.getElementById('disconnectBtn').style.display = 'none';
+            
+            displayResponse({
+                status: 200,
+                headers: {},
+                data: { message: "Stream disconnected" }
+            });
+        }
+        
+        function displayResponse(result) {
+            // Status badge
+            const statusClass = `status-${Math.floor(result.status / 100) * 100}`;
+            const statusBadge = `<span class="status-badge ${statusClass}">${result.status}</span>`;
+            
+            // Formatted response
+            const formattedHtml = `
+                <div style="margin-bottom: 15px;">
+                    ${statusBadge}
+                    <strong>Status:</strong> ${getStatusText(result.status)}
+                </div>
+                ${formatResponseData(result.data)}
+            `;
+            
+            document.getElementById('formattedResponse').innerHTML = formattedHtml;
+            document.getElementById('rawResponse').textContent = JSON.stringify(result.data, null, 2);
+            document.getElementById('responseHeaders').textContent = JSON.stringify(result.headers, null, 2);
+        }
+        
+        function displayError(error) {
+            const errorHtml = `
+                <div style="margin-bottom: 15px;">
+                    <span class="status-badge status-500">ERROR</span>
+                    <strong>Error:</strong> ${error.message}
+                </div>
+                <div class="code-block" style="background: #fed7d7; color: #c53030;">
+                    ${error.stack || error.message}
+                </div>
+            `;
+            
+            document.getElementById('formattedResponse').innerHTML = errorHtml;
+            document.getElementById('rawResponse').textContent = JSON.stringify({ error: error.message }, null, 2);
+            document.getElementById('responseHeaders').textContent = '{}';
+        }
+        
+        function formatResponseData(data) {
+            if (data.detections) {
+                return formatDetectionResults(data);
+            } else if (data.models) {
+                return formatModelsResults(data);
+            } else if (data.quota) {
+                return formatAnalyticsResults(data);
+            } else if (data.status === 'healthy') {
+                return formatHealthResults(data);
+            } else {
+                return `<div class="code-block">${JSON.stringify(data, null, 2)}</div>`;
+            }
+        }
+        
+        function formatDetectionResults(data) {
+            return `
+                <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h5>🎯 Detection Summary</h5>
+                    <p><strong>Objects found:</strong> ${data.detections.length}</p>
+                    <p><strong>Processing time:</strong> ${data.processing_time}s</p>
+                    <p><strong>Model used:</strong> ${data.model_used}</p>
+                </div>
+                
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #edf2f7; padding: 10px; font-weight: 600;">Detected Objects</div>
+                    ${data.detections.map(detection => `
+                        <div style="padding: 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between;">
+                            <span><strong>${detection.class}</strong></span>
+                            <span style="background: #e3f2fd; color: #1976d2; padding: 2px 8px; border-radius: 12px; font-size: 0.9rem;">
+                                ${(detection.confidence * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function formatModelsResults(data) {
+            return `
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #edf2f7; padding: 10px; font-weight: 600;">Available Models</div>
+                    ${data.models.map(model => `
+                        <div style="padding: 15px; border-bottom: 1px solid #e2e8f0;">
+                            <h6 style="margin-bottom: 5px;">${model.name} (${model.id})</h6>
+                            <p style="color: #718096; margin-bottom: 8px;">${model.description}</p>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; font-size: 0.9rem;">
+                                <div><strong>Classes:</strong> ${model.classes}</div>
+                                <div><strong>Inference:</strong> ${model.avg_inference_time}</div>
+                                <div><strong>Accuracy:</strong> ${model.accuracy}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function formatAnalyticsResults(data) {
+            return `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div style="background: #f0fff4; border: 1px solid #9ae6b4; padding: 15px; border-radius: 8px;">
+                        <h6 style="color: #2f855a;">Total Requests</h6>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #2f855a;">${data.total_requests}</div>
+                    </div>
+                    <div style="background: #fff5f5; border: 1px solid #fed7d7; padding: 15px; border-radius: 8px;">
+                        <h6 style="color: #c53030;">Failed Requests</h6>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #c53030;">${data.failed_requests}</div>
+                    </div>
+                    <div style="background: #f7fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px;">
+                        <h6 style="color: #4a5568;">Avg Processing</h6>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #4a5568;">${data.avg_processing_time}s</div>
+                    </div>
+                </div>
+                
+                <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px;">
+                    <h6 style="margin-bottom: 10px;">Quota Usage</h6>
+                    <div style="background: #edf2f7; height: 20px; border-radius: 10px; overflow: hidden;">
+                        <div style="background: #667eea; height: 100%; width: ${(data.quota.used / data.quota.limit) * 100}%; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 0.9rem; color: #718096;">
+                        ${data.quota.used} / ${data.quota.limit} requests used (${data.quota.remaining} remaining)
+                    </div>
+                </div>
+            `;
+        }
+        
+        function formatHealthResults(data) {
+            const statusColor = data.status === 'healthy' ? '#48bb78' : '#f56565';
+            
+            return `
+                <div style="background: #f0fff4; border: 1px solid #9ae6b4; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h5 style="color: #2f855a;">❤️ System Status: ${data.status.toUpperCase()}</h5>
+                    <p><strong>Uptime:</strong> ${data.uptime}</p>
+                    <p><strong>Version:</strong> ${data.version}</p>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    ${Object.entries(data.services).map(([service, status]) => `
+                        <div style="background: white; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px;">
+                            <h6>${service.charAt(0).toUpperCase() + service.slice(1)}</h6>
+                            <div style="color: ${status === 'healthy' ? '#48bb78' : '#f56565'}; font-weight: bold;">
+                                ${status === 'healthy' ? '✅' : '❌'} ${status}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        function getStatusText(status) {
+            const statusTexts = {
+                200: 'OK',
+                201: 'Created',
+                400: 'Bad Request',
+                401: 'Unauthorized',
+                404: 'Not Found',
+                500: 'Internal Server Error'
+            };
+            return statusTexts[status] || 'Unknown';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection API - Interactive Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .playground {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+        
+        .upload-section.dragover {
+            border-color: #667eea;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+        
+        .upload-area {
+            text-align: center;
+            padding: 40px 20px;
+            cursor: pointer;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            font-size: 1.1rem;
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .settings {
+            margin-top: 20px;
+        }
+        
+        .setting-group {
+            margin-bottom: 15px;
+        }
+        
+        .setting-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .setting-group select,
+        .setting-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .setting-group select:focus,
+        .setting-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .results-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            min-height: 400px;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .results-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .image-preview {
+            position: relative;
+            max-width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .image-preview img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .detection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .detection-box {
+            position: absolute;
+            border: 3px solid #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 4px;
+        }
+        
+        .detection-label {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            background: #ff6b6b;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .detection-results {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .detection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .detection-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detection-class {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .detection-confidence {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .api-info {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+        
+        .api-info h3 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .error {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        .success {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            color: #2f855a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .playground {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Object Detection API</h1>
+            <p>Interactive playground to test our powerful object detection capabilities</p>
+        </div>
+        
+        <div class="content">
+            <div class="playground">
+                <div class="upload-section">
+                    <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+                        <div class="upload-icon">📸</div>
+                        <div class="upload-text">Click to upload an image or drag & drop</div>
+                        <button class="btn">Choose Image</button>
+                        <input type="file" id="imageInput" class="file-input" accept="image/*">
+                    </div>
+                    
+                    <div class="settings">
+                        <div class="setting-group">
+                            <label for="modelSelect">Detection Model:</label>
+                            <select id="modelSelect">
+                                <option value="yolo">YOLO v8 (Fast & Accurate)</option>
+                                <option value="rcnn">R-CNN (High Precision)</option>
+                                <option value="ssd">SSD MobileNet (Lightweight)</option>
+                                <option value="efficientdet">EfficientDet (Balanced)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="confidenceSlider">Confidence Threshold: <span id="confidenceValue">0.5</span></label>
+                            <input type="range" id="confidenceSlider" min="0.1" max="1" step="0.1" value="0.5">
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="apiKeyInput">API Key (Optional):</label>
+                            <input type="password" id="apiKeyInput" placeholder="Enter your API key for higher rate limits">
+                        </div>
+                        
+                        <button class="btn" id="detectBtn" disabled>🔍 Detect Objects</button>
+                    </div>
+                </div>
+                
+                <div class="results-section">
+                    <div class="results-header">
+                        <div class="results-title">Detection Results</div>
+                        <button class="btn" id="downloadBtn" style="display: none;">💾 Download Results</button>
+                    </div>
+                    
+                    <div id="resultsContent">
+                        <div class="loading" style="display: none;" id="loadingIndicator">
+                            <div class="loading-spinner"></div>
+                            <div>Analyzing image...</div>
+                        </div>
+                        
+                        <div id="emptyState">
+                            <div style="text-align: center; padding: 60px 20px; color: #6c757d;">
+                                <div style="font-size: 3rem; margin-bottom: 15px;">🖼️</div>
+                                <div>Upload an image to see detection results</div>
+                            </div>
+                        </div>
+                        
+                        <div id="resultsDisplay" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="api-info">
+                <h3>📚 API Usage Examples</h3>
+                
+                <div class="tabs">
+                    <div class="tab active" data-tab="curl">cURL</div>
+                    <div class="tab" data-tab="python">Python</div>
+                    <div class="tab" data-tab="javascript">JavaScript</div>
+                    <div class="tab" data-tab="response">Response</div>
+                </div>
+                
+                <div class="tab-content active" id="curl">
+                    <div class="code-block">curl -X POST "https://api.objectdetection.com/v1/detect/image" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: multipart/form-data" \
+  -F "image=@path/to/image.jpg" \
+  -F "model=yolo" \
+  -F "confidence=0.5"</div>
+                </div>
+                
+                <div class="tab-content" id="python">
+                    <div class="code-block">import requests
+
+# Using our Python SDK
+from object_detection_sdk import APIClient
+
+client = APIClient(api_key="YOUR_API_KEY")
+
+# Upload and detect
+with open("image.jpg", "rb") as f:
+    results = client.upload_image(f, model="yolo", confidence=0.5)
+    
+print(f"Found {len(results['detections'])} objects")
+for detection in results['detections']:
+    print(f"- {detection['class']}: {detection['confidence']:.2f}")</div>
+                </div>
+                
+                <div class="tab-content" id="javascript">
+                    <div class="code-block">// Using our JavaScript SDK
+import { APIClient } from './object-detection-sdk.js';
+
+const client = new APIClient({
+    apiKey: 'YOUR_API_KEY'
+});
+
+// Upload image from file input
+const fileInput = document.getElementById('imageInput');
+const file = fileInput.files[0];
+
+try {
+    const results = await client.uploadImage(file, 'yolo', 0.5);
+    console.log(`Found ${results.detections.length} objects`);
+    
+    results.detections.forEach(detection => {
+        console.log(`- ${detection.class}: ${detection.confidence.toFixed(2)}`);
+    });
+} catch (error) {
+    console.error('Detection failed:', error);
+}</div>
+                </div>
+                
+                <div class="tab-content" id="response">
+                    <div class="code-block">{
+  "success": true,
+  "processing_time": 1.23,
+  "image_info": {
+    "width": 1920,
+    "height": 1080,
+    "format": "JPEG"
+  },
+  "detections": [
+    {
+      "class": "person",
+      "confidence": 0.95,
+      "bbox": {
+        "x": 100,
+        "y": 150,
+        "width": 200,
+        "height": 400
+      }
+    },
+    {
+      "class": "car",
+      "confidence": 0.87,
+      "bbox": {
+        "x": 500,
+        "y": 300,
+        "width": 300,
+        "height": 200
+      }
+    }
+  ],
+  "model_used": "yolo",
+  "confidence_threshold": 0.5
+}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentImage = null;
+        let currentResults = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            updateConfidenceDisplay();
+        });
+        
+        function initializeEventListeners() {
+            // File input
+            const fileInput = document.getElementById('imageInput');
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // Drag and drop
+            const uploadSection = document.querySelector('.upload-section');
+            uploadSection.addEventListener('dragover', handleDragOver);
+            uploadSection.addEventListener('dragleave', handleDragLeave);
+            uploadSection.addEventListener('drop', handleDrop);
+            
+            // Confidence slider
+            const confidenceSlider = document.getElementById('confidenceSlider');
+            confidenceSlider.addEventListener('input', updateConfidenceDisplay);
+            
+            // Detect button
+            const detectBtn = document.getElementById('detectBtn');
+            detectBtn.addEventListener('click', performDetection);
+            
+            // Download button
+            const downloadBtn = document.getElementById('downloadBtn');
+            downloadBtn.addEventListener('click', downloadResults);
+            
+            // Tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+        }
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                loadImage(file);
+            }
+        }
+        
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('dragover');
+        }
+        
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('dragover');
+        }
+        
+        function handleDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('dragover');
+            
+            const files = event.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                loadImage(files[0]);
+            }
+        }
+        
+        function loadImage(file) {
+            currentImage = file;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                displayImagePreview(e.target.result);
+                document.getElementById('detectBtn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function displayImagePreview(imageSrc) {
+            const resultsDisplay = document.getElementById('resultsDisplay');
+            resultsDisplay.innerHTML = `
+                <div class="image-preview">
+                    <img src="${imageSrc}" alt="Uploaded image" id="previewImage">
+                    <div class="detection-overlay" id="detectionOverlay"></div>
+                </div>
+            `;
+            
+            document.getElementById('emptyState').style.display = 'none';
+            resultsDisplay.style.display = 'block';
+        }
+        
+        function updateConfidenceDisplay() {
+            const slider = document.getElementById('confidenceSlider');
+            const display = document.getElementById('confidenceValue');
+            display.textContent = slider.value;
+        }
+        
+        async function performDetection() {
+            if (!currentImage) return;
+            
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const detectBtn = document.getElementById('detectBtn');
+            
+            // Show loading state
+            loadingIndicator.style.display = 'block';
+            detectBtn.disabled = true;
+            detectBtn.textContent = '🔄 Analyzing...';
+            
+            try {
+                // Simulate API call (replace with actual API call)
+                const results = await simulateDetection();
+                displayResults(results);
+                currentResults = results;
+                
+                // Show download button
+                document.getElementById('downloadBtn').style.display = 'inline-block';
+                
+                // Show success message
+                showMessage('Detection completed successfully!', 'success');
+                
+            } catch (error) {
+                showMessage(`Detection failed: ${error.message}`, 'error');
+            } finally {
+                // Hide loading state
+                loadingIndicator.style.display = 'none';
+                detectBtn.disabled = false;
+                detectBtn.textContent = '🔍 Detect Objects';
+            }
+        }
+        
+        async function simulateDetection() {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Simulate detection results
+            return {
+                success: true,
+                processing_time: 1.23,
+                image_info: {
+                    width: 1920,
+                    height: 1080,
+                    format: "JPEG"
+                },
+                detections: [
+                    {
+                        class: "person",
+                        confidence: 0.95,
+                        bbox: { x: 100, y: 150, width: 200, height: 400 }
+                    },
+                    {
+                        class: "car",
+                        confidence: 0.87,
+                        bbox: { x: 500, y: 300, width: 300, height: 200 }
+                    },
+                    {
+                        class: "bicycle",
+                        confidence: 0.72,
+                        bbox: { x: 800, y: 400, width: 150, height: 180 }
+                    }
+                ],
+                model_used: document.getElementById('modelSelect').value,
+                confidence_threshold: parseFloat(document.getElementById('confidenceSlider').value)
+            };
+        }
+        
+        function displayResults(results) {
+            const resultsDisplay = document.getElementById('resultsDisplay');
+            const previewImage = document.getElementById('previewImage');
+            const overlay = document.getElementById('detectionOverlay');
+            
+            // Clear previous overlays
+            overlay.innerHTML = '';
+            
+            // Add detection boxes
+            results.detections.forEach((detection, index) => {
+                const box = createDetectionBox(detection, previewImage, index);
+                overlay.appendChild(box);
+            });
+            
+            // Add results summary
+            const summaryHtml = `
+                <div class="detection-results">
+                    <h4>Detection Summary</h4>
+                    <p><strong>Objects found:</strong> ${results.detections.length}</p>
+                    <p><strong>Processing time:</strong> ${results.processing_time}s</p>
+                    <p><strong>Model used:</strong> ${results.model_used}</p>
+                    
+                    <div style="margin-top: 20px;">
+                        ${results.detections.map(detection => `
+                            <div class="detection-item">
+                                <span class="detection-class">${detection.class}</span>
+                                <span class="detection-confidence">${(detection.confidence * 100).toFixed(1)}%</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            resultsDisplay.innerHTML = resultsDisplay.innerHTML + summaryHtml;
+        }
+        
+        function createDetectionBox(detection, imageElement, index) {
+            const box = document.createElement('div');
+            box.className = 'detection-box';
+            
+            // Calculate relative positions
+            const imageRect = imageElement.getBoundingClientRect();
+            const scaleX = imageElement.offsetWidth / imageElement.naturalWidth;
+            const scaleY = imageElement.offsetHeight / imageElement.naturalHeight;
+            
+            const left = detection.bbox.x * scaleX;
+            const top = detection.bbox.y * scaleY;
+            const width = detection.bbox.width * scaleX;
+            const height = detection.bbox.height * scaleY;
+            
+            box.style.left = `${left}px`;
+            box.style.top = `${top}px`;
+            box.style.width = `${width}px`;
+            box.style.height = `${height}px`;
+            
+            // Add label
+            const label = document.createElement('div');
+            label.className = 'detection-label';
+            label.textContent = `${detection.class} (${(detection.confidence * 100).toFixed(1)}%)`;
+            box.appendChild(label);
+            
+            return box;
+        }
+        
+        function downloadResults() {
+            if (!currentResults) return;
+            
+            const dataStr = JSON.stringify(currentResults, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = 'detection_results.json';
+            link.click();
+        }
+        
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName).classList.add('active');
+        }
+        
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            
+            const content = document.querySelector('.content');
+            content.insertBefore(messageDiv, content.firstChild);
+            
+            // Remove message after 5 seconds
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

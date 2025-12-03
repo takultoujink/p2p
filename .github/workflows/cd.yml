@@ -1,0 +1,323 @@
+name: Continuous Deployment
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_run:
+    workflows: ["Continuous Integration"]
+    types:
+      - completed
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # Build and Push Docker Image
+  build-and-push:
+    runs-on: ubuntu-latest
+    name: Build & Push Docker Image
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'push'
+    
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+  # Deploy to Staging
+  deploy-staging:
+    runs-on: ubuntu-latest
+    name: Deploy to Staging
+    needs: build-and-push
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy to staging
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Update image in kustomization
+        cd k8s/overlays/staging
+        kustomize edit set image object-detection-api=${{ needs.build-and-push.outputs.image-tag }}
+        
+        # Apply manifests
+        kubectl apply -k .
+        
+        # Wait for rollout
+        kubectl rollout status deployment/object-detection-api -n object-detection-staging --timeout=600s
+
+    - name: Run smoke tests
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Get service URL
+        STAGING_URL=$(kubectl get ingress object-detection-ingress -n object-detection-staging -o jsonpath='{.spec.rules[0].host}')
+        
+        # Wait for service to be ready
+        sleep 60
+        
+        # Run smoke tests
+        curl -f https://$STAGING_URL/health || exit 1
+        curl -f https://$STAGING_URL/api/v1/models || exit 1
+
+  # Security Scan of Deployed Image
+  security-scan-image:
+    runs-on: ubuntu-latest
+    name: Security Scan Deployed Image
+    needs: build-and-push
+    
+    steps:
+    - name: Run Trivy vulnerability scanner on image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ needs.build-and-push.outputs.image-tag }}
+        format: 'sarif'
+        output: 'trivy-image-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-image-results.sarif'
+
+  # Deploy to Production (Blue-Green)
+  deploy-production:
+    runs-on: ubuntu-latest
+    name: Deploy to Production (Blue-Green)
+    needs: [build-and-push, deploy-staging, security-scan-image]
+    environment: production
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Determine current environment
+      id: current-env
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Check which environment is currently active
+        CURRENT=$(kubectl get service object-detection-api-active -n object-detection-production -o jsonpath='{.spec.selector.environment}' 2>/dev/null || echo "blue")
+        
+        if [ "$CURRENT" = "blue" ]; then
+          echo "current=blue" >> $GITHUB_OUTPUT
+          echo "target=green" >> $GITHUB_OUTPUT
+        else
+          echo "current=green" >> $GITHUB_OUTPUT
+          echo "target=blue" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "Current environment: $CURRENT"
+        echo "Target environment: $([ "$CURRENT" = "blue" ] && echo "green" || echo "blue")"
+
+    - name: Deploy to target environment
+      run: |
+        export KUBECONFIG=kubeconfig
+        TARGET_ENV=${{ steps.current-env.outputs.target }}
+        
+        # Update image in target environment
+        cd k8s/overlays/production
+        kustomize edit set image object-detection-api=${{ needs.build-and-push.outputs.image-tag }}
+        
+        # Apply to target environment
+        kubectl apply -k . -l environment=$TARGET_ENV
+        
+        # Wait for rollout
+        kubectl rollout status deployment/object-detection-api-$TARGET_ENV -n object-detection-production --timeout=600s
+
+    - name: Run health checks on target environment
+      run: |
+        export KUBECONFIG=kubeconfig
+        TARGET_ENV=${{ steps.current-env.outputs.target }}
+        
+        # Get target service IP
+        TARGET_IP=$(kubectl get service object-detection-api-$TARGET_ENV -n object-detection-production -o jsonpath='{.spec.clusterIP}')
+        
+        # Run health checks
+        for i in {1..30}; do
+          if curl -f http://$TARGET_IP:8000/health; then
+            echo "Health check passed"
+            break
+          fi
+          echo "Health check failed, retrying in 10 seconds..."
+          sleep 10
+        done
+
+    - name: Run integration tests on target environment
+      run: |
+        export KUBECONFIG=kubeconfig
+        TARGET_ENV=${{ steps.current-env.outputs.target }}
+        
+        # Run comprehensive tests
+        kubectl run integration-test-$TARGET_ENV \
+          --image=postman/newman \
+          --rm -i --restart=Never \
+          --env="API_URL=http://object-detection-api-$TARGET_ENV:8000" \
+          -- run /tests/integration-tests.json
+
+    - name: Switch traffic to target environment
+      run: |
+        export KUBECONFIG=kubeconfig
+        TARGET_ENV=${{ steps.current-env.outputs.target }}
+        
+        # Update active service selector
+        kubectl patch service object-detection-api-active -n object-detection-production \
+          -p '{"spec":{"selector":{"environment":"'$TARGET_ENV'"}}}'
+        
+        # Update ingress to point to new environment
+        kubectl patch ingress object-detection-ingress -n object-detection-production \
+          --type='json' \
+          -p='[{"op": "replace", "path": "/spec/rules/0/http/paths/0/backend/service/name", "value": "object-detection-api-'$TARGET_ENV'"}]'
+
+    - name: Verify production deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Get production URL
+        PROD_URL=$(kubectl get ingress object-detection-ingress -n object-detection-production -o jsonpath='{.spec.rules[0].host}')
+        
+        # Wait for DNS propagation
+        sleep 120
+        
+        # Verify production is working
+        for i in {1..10}; do
+          if curl -f https://$PROD_URL/health; then
+            echo "Production verification passed"
+            break
+          fi
+          echo "Production verification failed, retrying in 30 seconds..."
+          sleep 30
+        done
+
+    - name: Cleanup old environment
+      run: |
+        export KUBECONFIG=kubeconfig
+        OLD_ENV=${{ steps.current-env.outputs.current }}
+        
+        # Scale down old environment (keep for rollback)
+        kubectl scale deployment object-detection-api-$OLD_ENV -n object-detection-production --replicas=1
+
+  # Rollback if needed
+  rollback-production:
+    runs-on: ubuntu-latest
+    name: Rollback Production
+    needs: [deploy-production]
+    environment: production
+    if: failure()
+    
+    steps:
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Rollback to previous environment
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Get current active environment
+        CURRENT=$(kubectl get service object-detection-api-active -n object-detection-production -o jsonpath='{.spec.selector.environment}')
+        
+        # Determine previous environment
+        if [ "$CURRENT" = "blue" ]; then
+          PREVIOUS="green"
+        else
+          PREVIOUS="blue"
+        fi
+        
+        echo "Rolling back from $CURRENT to $PREVIOUS"
+        
+        # Scale up previous environment
+        kubectl scale deployment object-detection-api-$PREVIOUS -n object-detection-production --replicas=3
+        
+        # Wait for rollout
+        kubectl rollout status deployment/object-detection-api-$PREVIOUS -n object-detection-production --timeout=300s
+        
+        # Switch traffic back
+        kubectl patch service object-detection-api-active -n object-detection-production \
+          -p '{"spec":{"selector":{"environment":"'$PREVIOUS'"}}}'
+
+  # Notify deployment status
+  notify:
+    runs-on: ubuntu-latest
+    name: Notify Deployment Status
+    needs: [deploy-production]
+    if: always()
+    
+    steps:
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow

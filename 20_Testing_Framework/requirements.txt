@@ -1,0 +1,138 @@
+# Testing Framework Dependencies
+# Core testing libraries
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+pytest-xdist==3.3.1
+pytest-html==4.1.1
+pytest-benchmark==4.0.0
+
+# Unit testing
+unittest2==1.1.0
+mock==5.1.0
+parameterized==0.9.0
+
+# Integration testing
+requests==2.31.0
+httpx==0.25.2
+aiohttp==3.9.1
+websockets==12.0
+
+# Performance testing
+locust==2.17.0
+memory-profiler==0.61.0
+psutil==5.9.6
+py-spy==0.3.14
+
+# E2E testing
+selenium==4.15.2
+playwright==1.40.0
+webdriver-manager==4.0.1
+
+# Browser drivers (automatically managed by webdriver-manager)
+# chromedriver-binary==118.0.5993.70.0
+
+# Data processing and analysis
+numpy==1.24.3
+pandas==2.0.3
+matplotlib==3.7.2
+seaborn==0.12.2
+
+# Image processing for testing
+opencv-python==4.8.1.78
+Pillow==10.1.0
+scikit-image==0.21.0
+
+# Machine learning for testing
+torch==2.1.1
+torchvision==0.16.1
+tensorflow==2.14.0
+scikit-learn==1.3.2
+
+# Database testing
+sqlalchemy==2.0.23
+sqlite3==3.42.0  # Built-in with Python
+pymongo==4.6.0
+redis==5.0.1
+
+# API testing
+fastapi==0.104.1
+uvicorn==0.24.0
+starlette==0.27.0
+
+# Configuration and utilities
+pydantic==2.5.0
+python-dotenv==1.0.0
+pyyaml==6.0.1
+toml==0.10.2
+configparser==6.0.0
+
+# Logging and monitoring
+structlog==23.2.0
+loguru==0.7.2
+prometheus-client==0.19.0
+
+# Security testing
+cryptography==41.0.7
+python-jose==3.3.0
+passlib==1.7.4
+
+# Code quality and linting
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1
+isort==5.12.0
+bandit==1.7.5
+
+# Documentation testing
+sphinx==7.2.6
+sphinx-rtd-theme==1.3.0
+
+# Async testing
+asyncio==3.4.3
+aiofiles==23.2.1
+
+# Network testing
+ping3==4.0.4
+speedtest-cli==2.1.3
+
+# Load testing
+artillery==1.7.9  # Note: This is a Node.js package, use locust instead
+
+# Mocking and fixtures
+factory-boy==3.3.0
+faker==20.1.0
+responses==0.24.1
+
+# Test reporting
+allure-pytest==2.13.2
+pytest-json-report==1.5.0
+
+# Parallel testing
+pytest-parallel==0.1.1
+
+# Browser automation alternatives
+requests-html==0.10.0
+beautifulsoup4==4.12.2
+
+# Time and date testing
+freezegun==1.2.2
+python-dateutil==2.8.2
+
+# File system testing
+pyfakefs==5.3.2
+
+# Environment management
+tox==4.11.4
+virtualenv==20.24.7
+
+# CI/CD integration
+coverage==7.3.2
+codecov==2.1.13
+
+# Additional utilities
+click==8.1.7
+rich==13.7.0
+tabulate==0.9.0
+colorama==0.4.6

@@ -1,0 +1,103 @@
+# Mobile AI System Dependencies
+
+# Computer Vision and Image Processing
+opencv-python==4.8.1.78
+opencv-contrib-python==4.8.1.78
+Pillow==10.0.1
+scikit-image==0.21.0
+imageio==2.31.5
+
+# Machine Learning and AI
+torch==2.1.0
+torchvision==0.16.0
+tensorflow==2.13.0
+tensorflow-lite==2.13.0
+numpy==1.24.3
+scipy==1.11.3
+
+# MediaPipe for AR and tracking
+mediapipe==0.10.7
+
+# Voice Recognition and TTS
+SpeechRecognition==3.10.0
+pyttsx3==2.90
+pyaudio==0.2.11
+
+# Mobile and AR specific
+kivy==2.2.0
+kivymd==1.1.1
+plyer==2.1.0
+
+# Async and Threading
+asyncio==3.4.3
+threading2==0.1.2
+
+# Data Processing
+pandas==2.1.1
+sqlite3
+
+# Utilities
+python-dotenv==1.0.0
+pyyaml==6.0.1
+requests==2.31.0
+aiohttp==3.8.6
+
+# Performance and Monitoring
+psutil==5.9.6
+memory-profiler==0.61.0
+
+# Testing
+pytest==7.4.2
+pytest-asyncio==0.21.1
+pytest-mock==3.11.1
+
+# Development Tools
+black==23.9.1
+flake8==6.1.0
+mypy==1.6.1
+
+# Mobile Development (Optional)
+# For Android development
+# buildozer==1.5.0
+# python-for-android==2023.6.21
+
+# For iOS development (macOS only)
+# kivy-ios==1.3.0
+
+# Additional AR/VR libraries
+# opencv-contrib-python-headless==4.8.1.78  # For headless environments
+# open3d==0.17.0  # For 3D processing
+# trimesh==3.23.5  # For 3D mesh processing
+
+# Camera and Hardware Access
+# v4l2-python==0.3.2  # For Linux camera control
+# pygame==2.5.2  # Alternative for camera access
+
+# Audio Processing
+librosa==0.10.1
+soundfile==1.0.3
+pyaudio==0.2.11
+
+# Networking (for cloud features)
+websockets==11.0.3
+socketio==5.9.0
+
+# Encryption and Security
+cryptography==41.0.7
+bcrypt==4.0.1
+
+# Configuration Management
+configparser==6.0.0
+argparse==1.4.0
+
+# Logging and Debugging
+structlog==23.1.0
+colorlog==6.7.0
+
+# Performance Optimization
+numba==0.58.1
+cython==3.0.4
+
+# Mobile-specific utilities
+# android-permissions==0.1  # For Android permissions
+# ios-permissions==0.1      # For iOS permissions

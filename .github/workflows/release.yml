@@ -1,0 +1,352 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Create GitHub Release
+  create-release:
+    runs-on: ubuntu-latest
+    name: Create GitHub Release
+    
+    permissions:
+      contents: write
+      packages: write
+
+    outputs:
+      release-id: ${{ steps.create-release.outputs.id }}
+      upload-url: ${{ steps.create-release.outputs.upload_url }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get the latest tag
+        LATEST_TAG=$(git describe --tags --abbrev=0 HEAD^)
+        
+        # Generate changelog
+        echo "## Changes since $LATEST_TAG" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        
+        # Get commits since last tag
+        git log $LATEST_TAG..HEAD --pretty=format:"- %s (%h)" --no-merges >> CHANGELOG.md
+        
+        # Read changelog content
+        CHANGELOG_CONTENT=$(cat CHANGELOG.md)
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      id: create-release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body: |
+          # Object Detection API ${{ github.ref_name }}
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## Docker Images
+          
+          ```bash
+          docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          ```
+          
+          ## Kubernetes Deployment
+          
+          ```bash
+          kubectl apply -k k8s/overlays/production
+          ```
+          
+          ## Documentation
+          
+          - [API Documentation](https://docs.objectdetection.example.com)
+          - [SDK Documentation](https://github.com/${{ github.repository }}/tree/main/sdk)
+          
+        draft: false
+        prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+
+  # Build Release Artifacts
+  build-artifacts:
+    runs-on: ubuntu-latest
+    name: Build Release Artifacts
+    needs: create-release
+    
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: windows
+            arch: amd64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Build binary
+      run: |
+        pyinstaller --onefile --name object-detection-api-${{ matrix.os }}-${{ matrix.arch }} main.py
+
+    - name: Create archive
+      run: |
+        if [ "${{ matrix.os }}" = "windows" ]; then
+          zip -r object-detection-api-${{ matrix.os }}-${{ matrix.arch }}.zip dist/
+        else
+          tar -czf object-detection-api-${{ matrix.os }}-${{ matrix.arch }}.tar.gz dist/
+        fi
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload-url }}
+        asset_path: ./object-detection-api-${{ matrix.os }}-${{ matrix.arch }}.${{ matrix.os == 'windows' && 'zip' || 'tar.gz' }}
+        asset_name: object-detection-api-${{ matrix.os }}-${{ matrix.arch }}.${{ matrix.os == 'windows' && 'zip' || 'tar.gz' }}
+        asset_content_type: application/octet-stream
+
+  # Build and Push Multi-arch Docker Images
+  build-docker-release:
+    runs-on: ubuntu-latest
+    name: Build Multi-arch Docker Images
+    needs: create-release
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=raw,value=latest
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # Generate SDK Packages
+  generate-sdk:
+    runs-on: ubuntu-latest
+    name: Generate SDK Packages
+    needs: create-release
+    
+    strategy:
+      matrix:
+        language: [python, javascript, go, java, csharp]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up OpenAPI Generator
+      run: |
+        wget https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/7.0.1/openapi-generator-cli-7.0.1.jar -O openapi-generator-cli.jar
+
+    - name: Generate SDK
+      run: |
+        java -jar openapi-generator-cli.jar generate \
+          -i 22_API_Documentation/openapi.yaml \
+          -g ${{ matrix.language }} \
+          -o sdk/${{ matrix.language }} \
+          --additional-properties=packageName=object-detection-api,packageVersion=${{ github.ref_name }}
+
+    - name: Package SDK
+      run: |
+        cd sdk/${{ matrix.language }}
+        if [ "${{ matrix.language }}" = "python" ]; then
+          python setup.py sdist bdist_wheel
+          tar -czf ../object-detection-api-sdk-${{ matrix.language }}-${{ github.ref_name }}.tar.gz dist/
+        elif [ "${{ matrix.language }}" = "javascript" ]; then
+          npm pack
+          tar -czf ../object-detection-api-sdk-${{ matrix.language }}-${{ github.ref_name }}.tar.gz *.tgz
+        else
+          tar -czf ../object-detection-api-sdk-${{ matrix.language }}-${{ github.ref_name }}.tar.gz .
+        fi
+
+    - name: Upload SDK Package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload-url }}
+        asset_path: ./sdk/object-detection-api-sdk-${{ matrix.language }}-${{ github.ref_name }}.tar.gz
+        asset_name: object-detection-api-sdk-${{ matrix.language }}-${{ github.ref_name }}.tar.gz
+        asset_content_type: application/gzip
+
+  # Deploy to Production
+  deploy-release:
+    runs-on: ubuntu-latest
+    name: Deploy Release to Production
+    needs: [create-release, build-docker-release]
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    - name: Deploy release to production
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Update image tag to release version
+        cd k8s/overlays/production
+        kustomize edit set image object-detection-api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+        
+        # Apply manifests
+        kubectl apply -k .
+        
+        # Wait for rollout
+        kubectl rollout status deployment/object-detection-api -n object-detection-production --timeout=600s
+
+    - name: Verify production deployment
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Get production URL
+        PROD_URL=$(kubectl get ingress object-detection-ingress -n object-detection-production -o jsonpath='{.spec.rules[0].host}')
+        
+        # Verify deployment
+        curl -f https://$PROD_URL/health
+        curl -f https://$PROD_URL/api/v1/version | grep ${{ github.ref_name }}
+
+  # Update Documentation
+  update-docs:
+    runs-on: ubuntu-latest
+    name: Update Documentation
+    needs: deploy-release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Generate API documentation
+      run: |
+        npx @redocly/cli build-docs 22_API_Documentation/openapi.yaml --output docs/api.html
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs
+
+  # Notify stakeholders
+  notify-release:
+    runs-on: ubuntu-latest
+    name: Notify Release
+    needs: [deploy-release, update-docs]
+    if: always()
+    
+    steps:
+    - name: Notify Slack
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#releases'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+        text: |
+          🚀 New release deployed: ${{ github.ref_name }}
+          
+          📦 Docker Image: `ghcr.io/${{ github.repository }}:${{ github.ref_name }}`
+          📚 Documentation: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          🔗 Release Notes: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+
+    - name: Send email notification
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 465
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "🚀 Object Detection API ${{ github.ref_name }} Released"
+        to: ${{ secrets.NOTIFICATION_EMAIL }}
+        from: "Object Detection API <noreply@objectdetection.example.com>"
+        body: |
+          A new version of Object Detection API has been released!
+          
+          Version: ${{ github.ref_name }}
+          Release Notes: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+          
+          Docker Image: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          Documentation: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          
+          The release has been automatically deployed to production.

@@ -1,0 +1,352 @@
+/**
+ * {{ config.title }} JavaScript SDK
+ * {{ config.description }}
+ * 
+ * Generated automatically from OpenAPI specification
+ * Version: {{ config.version }}
+ */
+
+class APIError extends Error {
+    constructor(statusCode, message, details = {}) {
+        super(`API Error ${statusCode}: ${message}`);
+        this.name = 'APIError';
+        this.statusCode = statusCode;
+        this.details = details;
+    }
+}
+
+class APIClient {
+    /**
+     * {{ config.title }} API Client
+     * 
+     * @param {Object} options - Configuration options
+     * @param {string} options.baseUrl - Base URL for the API
+     * @param {string} options.apiKey - API key for authentication
+     * @param {number} options.timeout - Request timeout in milliseconds
+     */
+    constructor(options = {}) {
+        this.baseUrl = (options.baseUrl || '{{ config.servers[0].url }}').replace(/\/$/, '');
+        this.apiKey = options.apiKey;
+        this.timeout = options.timeout || 30000;
+        
+        // Default headers
+        this.defaultHeaders = {
+            'Content-Type': 'application/json',
+            'User-Agent': '{{ config.title.replace(" ", "-").lower() }}-js-sdk/{{ config.version }}'
+        };
+        
+        if (this.apiKey) {
+            this.defaultHeaders['Authorization'] = `Bearer ${this.apiKey}`;
+        }
+    }
+    
+    /**
+     * Make HTTP request
+     * @private
+     */
+    async _makeRequest(method, endpoint, options = {}) {
+        const url = new URL(endpoint.replace(/^\//, ''), this.baseUrl + '/').href;
+        
+        const config = {
+            method: method.toUpperCase(),
+            headers: {
+                ...this.defaultHeaders,
+                ...options.headers
+            },
+            ...options
+        };
+        
+        // Add timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+        config.signal = controller.signal;
+        
+        try {
+            const response = await fetch(url, config);
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                let errorMessage = 'Unknown error';
+                let errorDetails = {};
+                
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.message || errorMessage;
+                    errorDetails = errorData.details || {};
+                } catch {
+                    errorMessage = await response.text() || errorMessage;
+                }
+                
+                throw new APIError(response.status, errorMessage, errorDetails);
+            }
+            
+            // Check if response has content
+            const contentLength = response.headers.get('content-length');
+            if (contentLength === '0') {
+                return {};
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            }
+            
+            return await response.text();
+            
+        } catch (error) {
+            clearTimeout(timeoutId);
+            
+            if (error.name === 'AbortError') {
+                throw new APIError(0, 'Request timeout');
+            }
+            
+            if (error instanceof APIError) {
+                throw error;
+            }
+            
+            throw new APIError(0, `Request failed: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Build URL with path parameters
+     * @private
+     */
+    _buildUrl(path, pathParams = {}) {
+        let url = path;
+        for (const [key, value] of Object.entries(pathParams)) {
+            url = url.replace(`{${key}}`, encodeURIComponent(value));
+        }
+        return url;
+    }
+    
+    /**
+     * Build query string
+     * @private
+     */
+    _buildQueryString(params = {}) {
+        const searchParams = new URLSearchParams();
+        for (const [key, value] of Object.entries(params)) {
+            if (value !== null && value !== undefined) {
+                searchParams.append(key, value);
+            }
+        }
+        return searchParams.toString();
+    }
+
+{% for path, methods in spec.paths.items() %}
+{% for method, operation in methods.items() %}
+{% if operation.operationId %}
+    /**
+     * {{ operation.summary }}
+     * {{ operation.description }}
+     * 
+     {% for param in operation.parameters or [] %}
+     * @param {{ "{" }}{{ param.schema.type | js_type }}{{ "}" }} {{ param.name }} - {{ param.description or param.name }}
+     {% endfor %}
+     {% if operation.requestBody %}
+     * @param {Object} data - Request body data
+     {% endif %}
+     * @returns {Promise<Object>} API response data
+     * @throws {APIError} If the request fails
+     */
+    async {{ operation.operationId | camelCase }}({% for param in operation.parameters or [] %}{{ param.name }}{% if not param.required %} = null{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% if operation.requestBody %}{% if operation.parameters %}, {% endif %}data = null{% endif %}) {
+        const pathParams = {};
+        const queryParams = {};
+        
+        {% for param in operation.parameters or [] %}
+        {% if param.in == 'path' %}
+        if ({{ param.name }} !== null && {{ param.name }} !== undefined) {
+            pathParams.{{ param.name }} = {{ param.name }};
+        }{% if param.required %} else {
+            throw new Error('Required parameter {{ param.name }} is missing');
+        }{% endif %}
+        {% elif param.in == 'query' %}
+        if ({{ param.name }} !== null && {{ param.name }} !== undefined) {
+            queryParams.{{ param.name }} = {{ param.name }};
+        }
+        {% endif %}
+        {% endfor %}
+        
+        const endpoint = this._buildUrl('{{ path }}', pathParams);
+        const queryString = this._buildQueryString(queryParams);
+        const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+        
+        const options = {};
+        {% if operation.requestBody %}
+        if (data !== null) {
+            options.body = JSON.stringify(data);
+        }
+        {% endif %}
+        
+        return await this._makeRequest('{{ method.upper() }}', url, options);
+    }
+
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+    // Convenience methods for common operations
+    
+    /**
+     * Upload and detect objects in image
+     * 
+     * @param {File|Blob} imageFile - Image file to upload
+     * @param {string} model - Detection model to use
+     * @param {number} confidence - Minimum confidence threshold
+     * @returns {Promise<Object>} Detection results
+     */
+    async uploadImage(imageFile, model = 'yolo', confidence = 0.5) {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        formData.append('model', model);
+        formData.append('confidence', confidence.toString());
+        
+        const options = {
+            body: formData,
+            headers: {
+                ...this.defaultHeaders
+            }
+        };
+        
+        // Remove Content-Type header to let browser set it with boundary
+        delete options.headers['Content-Type'];
+        
+        return await this._makeRequest('POST', '/detect/image', options);
+    }
+    
+    /**
+     * Get usage statistics
+     * 
+     * @param {string} period - Time period (1h, 24h, 7d, 30d)
+     * @returns {Promise<Object>} Usage statistics
+     */
+    async getUsageStats(period = '24h') {
+        const queryString = this._buildQueryString({ period });
+        const url = `/analytics/usage?${queryString}`;
+        return await this._makeRequest('GET', url);
+    }
+    
+    /**
+     * Check API health status
+     * 
+     * @returns {Promise<Object>} Health status
+     */
+    async healthCheck() {
+        return await this._makeRequest('GET', '/health');
+    }
+    
+    /**
+     * Stream detection results (Server-Sent Events)
+     * 
+     * @param {string} sessionId - Detection session ID
+     * @param {Function} onMessage - Callback for each message
+     * @param {Function} onError - Callback for errors
+     * @param {Function} onClose - Callback when stream closes
+     * @returns {Function} Function to close the stream
+     */
+    streamDetection(sessionId, onMessage, onError, onClose) {
+        const url = new URL(`/detect/stream/${sessionId}`, this.baseUrl).href;
+        const eventSource = new EventSource(url);
+        
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                onMessage(data);
+            } catch (error) {
+                onError(new Error(`Failed to parse message: ${error.message}`));
+            }
+        };
+        
+        eventSource.onerror = (event) => {
+            onError(new Error('Stream connection error'));
+        };
+        
+        eventSource.addEventListener('close', () => {
+            eventSource.close();
+            if (onClose) onClose();
+        });
+        
+        // Return function to close the stream
+        return () => {
+            eventSource.close();
+        };
+    }
+}
+
+// Utility functions
+function camelCase(str) {
+    return str.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+}
+
+function jsType(openApiType) {
+    const typeMapping = {
+        'string': 'string',
+        'integer': 'number',
+        'number': 'number',
+        'boolean': 'boolean',
+        'array': 'Array',
+        'object': 'Object'
+    };
+    return typeMapping[openApiType] || 'any';
+}
+
+// Export for different module systems
+if (typeof module !== 'undefined' && module.exports) {
+    // Node.js
+    module.exports = { APIClient, APIError };
+} else if (typeof define === 'function' && define.amd) {
+    // AMD
+    define([], function() {
+        return { APIClient, APIError };
+    });
+} else {
+    // Browser global
+    window.APIClient = APIClient;
+    window.APIError = APIError;
+}
+
+// Example usage
+/*
+// Initialize client
+const client = new APIClient({
+    baseUrl: '{{ config.servers[0].url }}',
+    apiKey: 'your-api-key-here',
+    timeout: 30000
+});
+
+// Check health
+client.healthCheck()
+    .then(health => console.log('API Health:', health))
+    .catch(error => console.error('Health check failed:', error));
+
+// Get usage stats
+client.getUsageStats('24h')
+    .then(stats => console.log('Usage Stats:', stats))
+    .catch(error => console.error('Failed to get stats:', error));
+
+// Upload image for detection
+const fileInput = document.getElementById('imageInput');
+fileInput.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        try {
+            const results = await client.uploadImage(file, 'yolo', 0.5);
+            console.log('Detection Results:', results);
+        } catch (error) {
+            console.error('Detection failed:', error);
+        }
+    }
+});
+
+// Stream detection results
+const closeStream = client.streamDetection(
+    'session-123',
+    (data) => console.log('Detection update:', data),
+    (error) => console.error('Stream error:', error),
+    () => console.log('Stream closed')
+);
+
+// Close stream after 30 seconds
+setTimeout(() => closeStream(), 30000);
+*/

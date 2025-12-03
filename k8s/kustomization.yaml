@@ -1,0 +1,61 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: object-detection-api
+  namespace: object-detection
+
+# Namespace
+namespace: object-detection
+
+# Resources to include
+resources:
+- namespace.yaml
+- configmap.yaml
+- secret.yaml
+- persistent-volume.yaml
+- redis-deployment.yaml
+- postgres-deployment.yaml
+- api-deployment.yaml
+- nginx-deployment.yaml
+- ingress.yaml
+- monitoring.yaml
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: object-detection-api
+  app.kubernetes.io/version: v1.0.0
+  app.kubernetes.io/component: api
+  app.kubernetes.io/part-of: object-detection-system
+
+# Common annotations
+commonAnnotations:
+  app.kubernetes.io/managed-by: kustomize
+  deployment.kubernetes.io/revision: "1"
+
+# Images to use (can be overridden for different environments)
+images:
+- name: object-detection-api
+  newTag: latest
+
+# ConfigMap generator for environment-specific configs
+configMapGenerator:
+- name: environment-config
+  literals:
+  - DEPLOYMENT_ENV=production
+  - CLUSTER_NAME=production-cluster
+
+# Secret generator for sensitive data
+secretGenerator:
+- name: api-secrets
+  literals:
+  - API_KEY=your-api-key-here
+  type: Opaque
+
+# Patches for different environments
+patchesStrategicMerge:
+- patches/production-patches.yaml
+
+# Resource transformers
+transformers:
+- transformers/add-labels.yaml

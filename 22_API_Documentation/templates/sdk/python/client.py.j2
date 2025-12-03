@@ -1,0 +1,344 @@
+"""
+{{ config.title }} Python SDK
+{{ config.description }}
+
+Generated automatically from OpenAPI specification
+Version: {{ config.version }}
+"""
+
+import json
+import asyncio
+from typing import Dict, List, Any, Optional, Union
+from datetime import datetime
+import aiohttp
+import requests
+from urllib.parse import urljoin
+
+
+class APIError(Exception):
+    """API error exception"""
+    
+    def __init__(self, status_code: int, message: str, details: Dict[str, Any] = None):
+        self.status_code = status_code
+        self.message = message
+        self.details = details or {}
+        super().__init__(f"API Error {status_code}: {message}")
+
+
+class APIClient:
+    """{{ config.title }} API Client"""
+    
+    def __init__(self, 
+                 base_url: str = "{{ config.servers[0].url }}",
+                 api_key: str = None,
+                 timeout: int = 30):
+        """
+        Initialize API client
+        
+        Args:
+            base_url: Base URL for the API
+            api_key: API key for authentication
+            timeout: Request timeout in seconds
+        """
+        self.base_url = base_url.rstrip('/')
+        self.api_key = api_key
+        self.timeout = timeout
+        self.session = requests.Session()
+        
+        # Set default headers
+        self.session.headers.update({
+            'Content-Type': 'application/json',
+            'User-Agent': f'{{ config.title.replace(" ", "-").lower() }}-python-sdk/{{ config.version }}'
+        })
+        
+        if api_key:
+            self.session.headers['Authorization'] = f'Bearer {api_key}'
+    
+    def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+        """Make HTTP request"""
+        url = urljoin(self.base_url, endpoint.lstrip('/'))
+        
+        try:
+            response = self.session.request(
+                method=method,
+                url=url,
+                timeout=self.timeout,
+                **kwargs
+            )
+            
+            if response.status_code >= 400:
+                try:
+                    error_data = response.json()
+                    message = error_data.get('message', 'Unknown error')
+                    details = error_data.get('details', {})
+                except:
+                    message = response.text or 'Unknown error'
+                    details = {}
+                
+                raise APIError(response.status_code, message, details)
+            
+            if response.content:
+                return response.json()
+            return {}
+            
+        except requests.exceptions.RequestException as e:
+            raise APIError(0, f"Request failed: {str(e)}")
+    
+    async def _make_async_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+        """Make async HTTP request"""
+        url = urljoin(self.base_url, endpoint.lstrip('/'))
+        
+        headers = kwargs.pop('headers', {})
+        headers.update(self.session.headers)
+        
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
+            try:
+                async with session.request(
+                    method=method,
+                    url=url,
+                    headers=headers,
+                    **kwargs
+                ) as response:
+                    
+                    if response.status >= 400:
+                        try:
+                            error_data = await response.json()
+                            message = error_data.get('message', 'Unknown error')
+                            details = error_data.get('details', {})
+                        except:
+                            message = await response.text() or 'Unknown error'
+                            details = {}
+                        
+                        raise APIError(response.status, message, details)
+                    
+                    if response.content_length and response.content_length > 0:
+                        return await response.json()
+                    return {}
+                    
+            except aiohttp.ClientError as e:
+                raise APIError(0, f"Request failed: {str(e)}")
+
+{% for path, methods in spec.paths.items() %}
+{% for method, operation in methods.items() %}
+{% if operation.operationId %}
+    def {{ operation.operationId | snake_case }}(self{% for param in operation.parameters or [] %}, {{ param.name }}: {{ param.schema.type | python_type }}{% if not param.required %} = None{% endif %}{% endfor %}{% if operation.requestBody %}, data: Dict[str, Any] = None{% endif %}) -> Dict[str, Any]:
+        """
+        {{ operation.summary }}
+        
+        {{ operation.description }}
+        
+        Args:
+        {% for param in operation.parameters or [] %}
+            {{ param.name }}: {{ param.description or param.name }}
+        {% endfor %}
+        {% if operation.requestBody %}
+            data: Request body data
+        {% endif %}
+        
+        Returns:
+            API response data
+            
+        Raises:
+            APIError: If the request fails
+        """
+        endpoint = "{{ path }}"
+        
+        # Replace path parameters
+        {% for param in operation.parameters or [] %}
+        {% if param.in == 'path' %}
+        endpoint = endpoint.replace("{{{ param.name }}}", str({{ param.name }}))
+        {% endif %}
+        {% endfor %}
+        
+        # Query parameters
+        params = {}
+        {% for param in operation.parameters or [] %}
+        {% if param.in == 'query' %}
+        if {{ param.name }} is not None:
+            params["{{ param.name }}"] = {{ param.name }}
+        {% endif %}
+        {% endfor %}
+        
+        kwargs = {}
+        if params:
+            kwargs['params'] = params
+        
+        {% if operation.requestBody %}
+        if data is not None:
+            kwargs['json'] = data
+        {% endif %}
+        
+        return self._make_request("{{ method.upper() }}", endpoint, **kwargs)
+    
+    async def {{ operation.operationId | snake_case }}_async(self{% for param in operation.parameters or [] %}, {{ param.name }}: {{ param.schema.type | python_type }}{% if not param.required %} = None{% endif %}{% endfor %}{% if operation.requestBody %}, data: Dict[str, Any] = None{% endif %}) -> Dict[str, Any]:
+        """
+        {{ operation.summary }} (Async version)
+        
+        {{ operation.description }}
+        
+        Args:
+        {% for param in operation.parameters or [] %}
+            {{ param.name }}: {{ param.description or param.name }}
+        {% endfor %}
+        {% if operation.requestBody %}
+            data: Request body data
+        {% endif %}
+        
+        Returns:
+            API response data
+            
+        Raises:
+            APIError: If the request fails
+        """
+        endpoint = "{{ path }}"
+        
+        # Replace path parameters
+        {% for param in operation.parameters or [] %}
+        {% if param.in == 'path' %}
+        endpoint = endpoint.replace("{{{ param.name }}}", str({{ param.name }}))
+        {% endif %}
+        {% endfor %}
+        
+        # Query parameters
+        params = {}
+        {% for param in operation.parameters or [] %}
+        {% if param.in == 'query' %}
+        if {{ param.name }} is not None:
+            params["{{ param.name }}"] = {{ param.name }}
+        {% endif %}
+        {% endfor %}
+        
+        kwargs = {}
+        if params:
+            kwargs['params'] = params
+        
+        {% if operation.requestBody %}
+        if data is not None:
+            kwargs['json'] = data
+        {% endif %}
+        
+        return await self._make_async_request("{{ method.upper() }}", endpoint, **kwargs)
+
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+    # Convenience methods for common operations
+    
+    def upload_image(self, image_path: str, model: str = "yolo", confidence: float = 0.5) -> Dict[str, Any]:
+        """
+        Upload and detect objects in image
+        
+        Args:
+            image_path: Path to image file
+            model: Detection model to use
+            confidence: Minimum confidence threshold
+            
+        Returns:
+            Detection results
+        """
+        with open(image_path, 'rb') as f:
+            files = {'image': f}
+            data = {'model': model, 'confidence': confidence}
+            
+            url = urljoin(self.base_url, '/detect/image')
+            response = self.session.post(
+                url,
+                files=files,
+                data=data,
+                timeout=self.timeout
+            )
+            
+            if response.status_code >= 400:
+                try:
+                    error_data = response.json()
+                    message = error_data.get('message', 'Unknown error')
+                    details = error_data.get('details', {})
+                except:
+                    message = response.text or 'Unknown error'
+                    details = {}
+                
+                raise APIError(response.status_code, message, details)
+            
+            return response.json()
+    
+    def get_usage_stats(self, period: str = "24h") -> Dict[str, Any]:
+        """
+        Get usage statistics
+        
+        Args:
+            period: Time period (1h, 24h, 7d, 30d)
+            
+        Returns:
+            Usage statistics
+        """
+        return self._make_request("GET", "/analytics/usage", params={"period": period})
+    
+    def health_check(self) -> Dict[str, Any]:
+        """
+        Check API health status
+        
+        Returns:
+            Health status
+        """
+        return self._make_request("GET", "/health")
+    
+    def close(self):
+        """Close the session"""
+        self.session.close()
+    
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit"""
+        self.close()
+
+
+# Utility functions
+def snake_case(text: str) -> str:
+    """Convert text to snake_case"""
+    import re
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', text)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+def python_type(openapi_type: str) -> str:
+    """Convert OpenAPI type to Python type"""
+    type_mapping = {
+        'string': 'str',
+        'integer': 'int',
+        'number': 'float',
+        'boolean': 'bool',
+        'array': 'List[Any]',
+        'object': 'Dict[str, Any]'
+    }
+    return type_mapping.get(openapi_type, 'Any')
+
+
+# Example usage
+if __name__ == "__main__":
+    # Initialize client
+    client = APIClient(
+        base_url="{{ config.servers[0].url }}",
+        api_key="your-api-key-here"
+    )
+    
+    try:
+        # Check health
+        health = client.health_check()
+        print("API Health:", health)
+        
+        # Get usage stats
+        stats = client.get_usage_stats("24h")
+        print("Usage Stats:", stats)
+        
+        # Upload image for detection (if you have an image file)
+        # results = client.upload_image("path/to/image.jpg")
+        # print("Detection Results:", results)
+        
+    except APIError as e:
+        print(f"API Error: {e}")
+    finally:
+        client.close()

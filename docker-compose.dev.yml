@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Development API with hot reload
+  api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: object-detection-api-dev
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Debug port
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=debug
+      - RELOAD=true
+      - DEBUG=true
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/objectdetection_dev
+    volumes:
+      - .:/app
+      - /app/__pycache__
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+      - ./logs:/app/logs
+    depends_on:
+      - redis
+      - postgres-dev
+    restart: unless-stopped
+    networks:
+      - dev-network
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]
+
+  # Redis for development
+  redis:
+    image: redis:7-alpine
+    container_name: object-detection-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - dev-network
+
+  # PostgreSQL for development
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: object-detection-postgres-dev
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=objectdetection_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - dev-network
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: object-detection-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - dev-network
+
+  # Documentation server
+  docs:
+    image: nginx:alpine
+    container_name: object-detection-docs
+    ports:
+      - "8080:80"
+    volumes:
+      - ./22_API_Documentation:/usr/share/nginx/html
+    networks:
+      - dev-network
+
+volumes:
+  postgres_dev_data:
+    driver: local
+
+networks:
+  dev-network:
+    driver: bridge
