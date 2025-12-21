@@ -3,309 +3,797 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>บาร์โค้ดของฉัน</title>
+    <title>บาร์โค้ดของฉัน - ระบบเก็บขวด 🎄</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #f7fafc;
-            --card: #fff;
-            --text: #0f172a;
-            --muted: #6b7280;
-            --accent: #4f46e5;
+            --bg: #0a1628;
+            --card: #ffffff;
+            --text: #1f2937;
+            --text-secondary: #6b7280;
+            --christmas-red: #c41e3a;
+            --christmas-green: #165b33;
+            --christmas-gold: #ffd700;
+            --success: #10b981;
+            --radius: 24px;
+            --radius-sm: 16px;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html, body {
-            height: 100%;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: 'Inter', 'Bai Jamjuree', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Thai', Arial, sans-serif;
-            background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(180deg, #0a1628 0%, #1a2f4a 50%, #2d4a6b 100%);
+            background-attachment: fixed;
+            padding: 10px;
             min-height: 100vh;
-            padding: 20px;
+            position: relative;
+        }
+
+        /* Christmas Decorations */
+        .christmas-lights {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            z-index: 998;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .light {
+            width: 15px;
+            height: 20px;
+            border-radius: 0 0 50% 50%;
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        .light:nth-child(1) { background: #ff0000; }
+        .light:nth-child(2) { background: #00ff00; animation-delay: 0.3s; }
+        .light:nth-child(3) { background: #0000ff; animation-delay: 0.6s; }
+        .light:nth-child(4) { background: #ffff00; animation-delay: 0.9s; }
+        .light:nth-child(5) { background: #ff00ff; animation-delay: 1.2s; }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .snowflakes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+
+        .snowflake {
+            position: absolute;
+            top: -10px;
+            color: white;
+            animation: fall linear infinite;
+            opacity: 0.8;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(360deg); }
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin: 40px 0 16px;
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            margin-top: 4px;
         }
 
         .card {
-            width: 100%;
-            max-width: 720px;
-            background: var(--card);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
-            padding: 40px;
+            background: white;
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            position: relative;
+            border: 3px solid transparent;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            background: linear-gradient(45deg, var(--christmas-red), var(--christmas-gold), var(--christmas-green));
+            border-radius: var(--radius);
+            z-index: -1;
+            animation: rotate 3s linear infinite;
+            background-size: 300% 300%;
+        }
+
+        @keyframes rotate {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .user-info {
+            background: linear-gradient(135deg, var(--christmas-red), var(--christmas-green));
+            color: white;
+            border: none;
+        }
+
+        .user-info h2 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 10px;
             text-align: center;
         }
 
-        h1 {
-            font-size: 1.8rem;
-            margin-bottom: 12px;
-            color: var(--text);
-        }
-
-        .lead {
-            color: var(--muted);
-            margin-bottom: 24px;
-            font-size: 1rem;
-            line-height: 1.6;
-        }
-
-        .content {
-            margin: 30px 0;
-        }
-
-        .username {
+        .stat-value {
+            font-size: 1.2rem;
             font-weight: 700;
-            color: var(--accent);
-            margin-bottom: 24px;
-            font-size: 1.1rem;
+            display: block;
+            color: white;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .score-card {
+            background: linear-gradient(135deg, var(--christmas-red), var(--christmas-gold), var(--christmas-green));
+            color: white;
+            text-align: center;
+            border: none;
+        }
+
+        .score-number {
+            font-size: 3.2rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s;
+        }
+
+        .score-number.pulse {
+            animation: scorePulse 0.6s ease;
+        }
+
+        @keyframes scorePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
         }
 
         .barcode-wrap {
+            padding: 16px;
+            background: rgba(196, 30, 58, 0.08);
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--christmas-gold);
+            text-align: center;
+        }
+
+        .history-section h3 {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .realtime-indicator {
+            font-size: 0.75rem;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            padding: 4px 10px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .realtime-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            background: rgba(196, 30, 58, 0.06);
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            border-left: 4px solid var(--christmas-red);
+            animation: slideIn 0.5s ease;
+        }
+
+        .history-item.new {
+            animation: newItemHighlight 2s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes newItemHighlight {
+            0% { background: rgba(255, 215, 0, 0.3); transform: scale(1.02); }
+            100% { background: rgba(196, 30, 58, 0.06); transform: scale(1); }
+        }
+
+        .history-item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .history-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--christmas-red), var(--christmas-green));
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 30px 0;
-            padding: 20px;
-            background: rgba(15, 23, 42, 0.02);
-            border-radius: 12px;
-            border: 2px solid rgba(79, 70, 229, 0.1);
+            font-size: 1.1rem;
         }
 
-        svg#barcode {
-            width: 100%;
-            max-width: 520px;
-            height: auto;
+        .history-bottles {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--christmas-red);
+        }
+
+        .confidence-badge {
+            font-size: 0.7rem;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-left: 8px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: var(--radius-sm);
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, var(--christmas-red), var(--christmas-gold));
+            color: white;
+        }
+
+        .btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(196, 30, 58, 0.4);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, var(--christmas-green), var(--success));
+            color: white;
+        }
+
+        .btn.success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(22, 91, 51, 0.4);
+        }
+
+        .btn.ghost {
+            background: rgba(196, 30, 58, 0.1);
+            border: 2px solid var(--christmas-red);
+            color: var(--christmas-red);
+        }
+
+        .btn.ghost:hover {
+            background: rgba(196, 30, 58, 0.2);
         }
 
         .actions {
             display: flex;
             gap: 12px;
             justify-content: center;
-            margin-top: 24px;
             flex-wrap: wrap;
+            margin-top: 20px;
         }
 
-        .btn {
-            padding: 12px 24px;
-            border-radius: 10px;
+        .toast {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--christmas-green), var(--success));
+            color: white;
+            padding: 16px 20px;
+            border-radius: var(--radius-sm);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            animation: slideInRight 0.5s ease, slideOutRight 0.5s ease 2.5s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        /* Barcode Modal */
+        .barcode-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .barcode-modal.active {
+            display: flex;
+        }
+
+        .barcode-modal-content {
+            background: white;
+            border-radius: var(--radius);
+            padding: 30px;
+            max-width: 90%;
+            max-height: 90%;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .barcode-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: var(--christmas-red);
+            color: white;
             border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .barcode-modal-close:hover {
+            transform: rotate(90deg);
+            background: #a01828;
+        }
+
+        .barcode-modal svg {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+        }
+
+        .barcode-expand-btn {
+            background: rgba(196, 30, 58, 0.1);
+            border: 2px solid var(--christmas-gold);
+            color: var(--christmas-red);
+            padding: 8px 16px;
+            border-radius: 12px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            min-width: 140px;
+            font-size: 0.9rem;
+            margin-top: 12px;
+            transition: all 0.3s;
         }
 
-        .btn.primary {
-            background: linear-gradient(135deg, var(--accent), #6366f1);
-            color: white;
-            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
-        }
-
-        .btn.primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(79, 70, 229, 0.4);
-        }
-
-        .btn.ghost {
-            background: transparent;
-            border: 2px solid var(--accent);
-            color: var(--accent);
-        }
-
-        .btn.ghost:hover {
-            background: rgba(79, 70, 229, 0.1);
-        }
-
-        .notice {
-            margin-top: 16px;
-            color: var(--muted);
-            font-size: 0.95rem;
-            padding: 12px;
-            background: rgba(79, 70, 229, 0.05);
-            border-radius: 8px;
-            border-left: 4px solid var(--accent);
-        }
-
-        .loader {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(15, 23, 42, 0.2);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 560px) {
-            .card {
-                padding: 24px;
-            }
-
-            h1 {
-                font-size: 1.4rem;
-            }
-
-            .lead {
-                font-size: 0.95rem;
-            }
-
-            svg#barcode {
-                max-width: 320px;
-            }
-
-            .btn {
-                min-width: 120px;
-                padding: 10px 16px;
-                font-size: 0.9rem;
-            }
-
-            .actions {
-                gap: 8px;
-            }
+        .barcode-expand-btn:hover {
+            background: rgba(196, 30, 58, 0.2);
+            transform: scale(1.05);
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1> ??????????????</h1>
-        <p class="lead">?????????????????? ????????????????????????????????????</p>
+    <div class="christmas-lights">
+        <div class="light"></div>
+        <div class="light"></div>
+        <div class="light"></div>
+        <div class="light"></div>
+        <div class="light"></div>
+    </div>
 
-        <div id="content">
-            <div class="username" id="usernameText">
-                <div class="loader"></div> ?????????...
-            </div>
-            
-            <div class="barcode-wrap">
-                <svg id="barcode"></svg>
-            </div>
+    <div class="snowflakes" id="snowflakes"></div>
 
-            <div class="actions">
-                <button class="btn primary" id="printBtn" onclick="printBarcode()"> ?????</button>
-                <button class="btn ghost" id="logoutBtn" onclick="logout()"> ??????????</button>
+    <!-- Barcode Modal -->
+    <div class="barcode-modal" id="barcodeModal">
+        <div class="barcode-modal-content">
+            <button class="barcode-modal-close" onclick="closeBarcodeModal()">×</button>
+            <div style="text-align: center;">
+                <h2 style="margin-bottom: 20px; color: var(--christmas-red);">📱 บาร์โค้ดของคุณ</h2>
+                <svg id="barcodeModalSvg"></svg>
+                <p style="margin-top: 20px; color: var(--text-secondary); font-size: 1.1rem; font-weight: 600;">
+                    รหัส: <span id="modalStudentId"></span>
+                </p>
             </div>
-
-            <div class="notice" id="notice"></div>
         </div>
     </div>
 
-    <script>
-        (function() {
-            function getBarcodeValue() {
-                try {
-                    const studentId = (localStorage.getItem('studentId') || '').trim();
-                    if (studentId) {
-                        return studentId;
-                    }
+    <div class="container">
+        <div class="header">
+            <h1>🎄 ระบบเก็บขวดอัตโนมัติ 🎄</h1>
+            <p>🎅 สแกนบาร์โค้ดเพื่อใช้เครื่องและสะสมคะแนน ❄️</p>
+        </div>
 
-                    const username = (localStorage.getItem('username') || '').trim();
-                    if (username) {
-                        return username;
-                    }
+        <div id="content"></div>
+    </div>
 
-                    const userJson = sessionStorage.getItem('user');
-                    if (userJson) {
-                        try {
-                            const user = JSON.parse(userJson);
-                            if (user.displayName) return user.displayName;
-                            if (user.email) return user.email;
-                        } catch (e) {}
-                    }
-                } catch (e) {
-                    console.warn('Error getting barcode value:', e);
-                }
-                return null;
+    <script type="module">
+        // Snowflakes
+        function createSnowflakes() {
+            const container = document.getElementById('snowflakes');
+            for (let i = 0; i < 30; i++) {
+                const snowflake = document.createElement('div');
+                snowflake.className = 'snowflake';
+                snowflake.textContent = ['❄', '❅', '❆'][Math.floor(Math.random() * 3)];
+                snowflake.style.left = Math.random() * 100 + '%';
+                snowflake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                container.appendChild(snowflake);
             }
+        }
+        createSnowflakes();
 
-            function getDisplayName() {
-                try {
-                    const studentId = (localStorage.getItem('studentId') || '').trim();
-                    if (studentId) {
-                        return '????????????: ' + studentId;
-                    }
+        // Firebase
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, query, where, orderBy, limit, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
-                    const username = (localStorage.getItem('username') || '').trim();
-                    if (username) {
-                        return username;
-                    }
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcdAiBzbos42JyfueswYOdt1RfUo07igE",
+            authDomain: "barcode-me.firebaseapp.com",
+            projectId: "barcode-me",
+            storageBucket: "barcode-me.firebasestorage.app",
+            messagingSenderId: "690530427838",
+            appId: "1:690530427838:web:4cf6e8c7b33d7ec3bb35f3"
+        };
 
-                    const userJson = sessionStorage.getItem('user');
-                    if (userJson) {
-                        try {
-                            const user = JSON.parse(userJson);
-                            if (user.displayName) return user.displayName;
-                            if (user.email) return user.email;
-                        } catch (e) {}
-                    }
-                } catch (e) {
-                    console.warn('Error getting display name:', e);
-                }
-                return null;
-            }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-            const barcodeValue = getBarcodeValue();
-            const displayName = getDisplayName();
-            const usernameText = document.getElementById('usernameText');
-            const notice = document.getElementById('notice');
-
-            if (!barcodeValue) {
-                usernameText.innerHTML = ' ????????????????????';
-                notice.textContent = '??????????????????????? login.html ???????????????????????';
-                document.getElementById('barcode').style.display = 'none';
-            } else {
-                usernameText.textContent = displayName || '??????';
-                
-                try {
-                    JsBarcode('#barcode', barcodeValue, {
-                        format: 'CODE128',
-                        lineColor: '#0f172a',
-                        width: 2.5,
-                        height: 80,
-                        displayValue: true,
-                        fontSize: 16,
-                        margin: 10,
-                        valid: function(valid) {
-                            if (!valid) {
-                                console.warn('Barcode validation failed');
-                                notice.textContent = ' ????????????????????????';
-                            }
-                        }
-                    });
-                    notice.textContent = ' ??????????????????? - ?????????????????? PDF';
-                } catch (e) {
-                    console.error('Barcode error:', e);
-                    usernameText.textContent = ' ??????????????????????';
-                    notice.textContent = '???????????????????????????????? ????????????????????';
-                    document.getElementById('barcode').style.display = 'none';
-                }
-            }
-        })();
-
-        function printBarcode() {
-            window.print();
+        const localStudentId = localStorage.getItem("studentId");
+        if (!localStudentId) {
+            alert("กรุณาสมัครสมาชิกหรือเข้าสู่ระบบก่อน");
+            window.location.href = "register.html";
         }
 
-        function logout() {
+        let userData = {
+            studentId: localStudentId,
+            fullName: localStorage.getItem("fullName") || localStudentId,
+            grade: localStorage.getItem("grade") || "N/A",
+            totalBottles: 0,
+            todayBottles: 0,
+            thisWeekBottles: 0,
+            history: []
+        };
+
+        let lastBottleCount = 0;
+
+        // Load data
+        async function loadBottleData() {
             try {
-                localStorage.removeItem('username');
-                localStorage.removeItem('studentId');
-                sessionStorage.removeItem('user');
-            } catch (e) {}
-            window.location.href = 'login.html';
+                const bottlesRef = collection(db, "bottles");
+                const q = query(
+                    bottlesRef,
+                    where("studentId", "==", localStudentId),
+                    orderBy("timestamp", "desc"),
+                    limit(50)
+                );
+                
+                const querySnapshot = await getDocs(q);
+                const bottles = [];
+                let todayCount = 0;
+                let weekCount = 0;
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const timestamp = data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+                    const count = data.count || 1;
+
+                    bottles.push({
+                        id: doc.id,
+                        bottles: count,
+                        timestamp: timestamp,
+                        confidence: data.confidence || 0.95
+                    });
+
+                    if (timestamp >= today) todayCount += count;
+                    if (timestamp >= weekAgo) weekCount += count;
+                });
+
+                userData.history = bottles;
+                userData.totalBottles = bottles.reduce((sum, b) => sum + b.bottles, 0);
+                userData.todayBottles = todayCount;
+                userData.thisWeekBottles = weekCount;
+
+                renderUI(userData);
+            } catch (error) {
+                console.error("Error loading data:", error);
+                renderUI(userData);
+            }
         }
+
+        // Real-time listener
+        function listenForNewBottles() {
+            try {
+                const bottlesRef = collection(db, "bottles");
+                const q = query(
+                    bottlesRef,
+                    where("studentId", "==", localStudentId),
+                    orderBy("timestamp", "desc"),
+                    limit(100)
+                );
+
+                onSnapshot(q, (snapshot) => {
+                    const newCount = snapshot.size;
+                    if (lastBottleCount > 0 && newCount > lastBottleCount) {
+                        showToast("🎉 ตรวจพบขวดใหม่! +1 คะแนน");
+                        playSound();
+                    }
+                    lastBottleCount = newCount;
+                    loadBottleData();
+                });
+            } catch (error) {
+                console.warn("Could not set up listener:", error);
+            }
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<span class="toast-icon">🎁</span><span>${message}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+
+            // Pulse score
+            const scoreEl = document.querySelector('.score-number');
+            if (scoreEl) {
+                scoreEl.classList.add('pulse');
+                setTimeout(() => scoreEl.classList.remove('pulse'), 600);
+            }
+        }
+
+        // Play sound
+        function playSound() {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBCx+zPDTgjMGHm7A7+OZSBAQT6nf');
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        }
+
+        // Format time
+        function formatTime(date) {
+            const diff = Math.floor((new Date() - date) / 1000);
+            if (diff < 60) return 'เมื่อสักครู่';
+            if (diff < 3600) return `${Math.floor(diff / 60)} นาทีที่แล้ว`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)} ชั่วโมงที่แล้ว`;
+            return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+        }
+
+        // Render UI
+        function renderUI(userData) {
+            document.getElementById('content').innerHTML = `
+                <div class="card user-info">
+                    <h2>🎅 ${userData.fullName}</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value">${userData.todayBottles}</span>
+                            <span class="stat-label">วันนี้</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${userData.thisWeekBottles}</span>
+                            <span class="stat-label">สัปดาห์นี้</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${userData.totalBottles}</span>
+                            <span class="stat-label">ทั้งหมด</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card score-card">
+                    <h3>🎁 คะแนนสะสม</h3>
+                    <div class="score-number">${userData.totalBottles}</div>
+                    <p>คะแนน (1 ขวด = 1 คะแนน)</p>
+                </div>
+
+                <div class="card">
+                    <h3 style="text-align: center; margin-bottom: 16px;">📱 บาร์โค้ดของคุณ</h3>
+                    <div class="barcode-wrap">
+                        <svg id="barcode"></svg>
+                    </div>
+                    <p style="text-align: center; color: #6b7280; margin-top: 8px;">รหัส: ${userData.studentId}</p>
+                    <div style="text-align: center;">
+                        <button class="barcode-expand-btn" onclick="openBarcodeModal()">
+                            🔍 ขยายบาร์โค้ด
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="history-section">
+                        📋 ประวัติการทิ้งขวด
+                        <span class="realtime-indicator">
+                            <span class="realtime-dot"></span>
+                            Real-time
+                        </span>
+                    </h3>
+                    <div class="history-list">
+                        ${userData.history.length > 0 ? userData.history.map(item => `
+                            <div class="history-item">
+                                <div class="history-item-info">
+                                    <div class="history-icon">♻️</div>
+                                    <div>
+                                        <h4>ทิ้งขวดสำเร็จ</h4>
+                                        <div style="font-size: 0.8rem; color: #6b7280;">${formatTime(item.timestamp)}</div>
+                                    </div>
+                                </div>
+                                <div class="history-bottles">
+                                    +${item.bottles} คะแนน
+                                    <span class="confidence-badge">${Math.round(item.confidence * 100)}%</span>
+                                </div>
+                            </div>
+                        `).join('') : `
+                            <div class="empty-state">
+                                <div style="font-size: 3rem; opacity: 0.3;">🎄</div>
+                                <p>ยังไม่มีประวัติการใช้งาน</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn success" onclick="window.location.href='index.html'">🏠 กลับหน้าแรก</button>
+                    <button class="btn ghost" onclick="logout()">🚪 ออกจากระบบ</button>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: center; padding: 12px; background: rgba(196, 30, 58, 0.08); border-radius: 16px; border-left: 4px solid var(--christmas-gold);">
+                    <p style="color: #6b7280; font-size: 0.9rem;">🎄 Merry Christmas! สแกนบาร์โค้ดนี้ที่เครื่องเพื่อบันทึกขวด ❄️</p>
+                </div>
+            `;
+
+            JsBarcode('#barcode', userData.studentId, {
+                format: 'CODE128',
+                width: 2.5,
+                height: 80,
+                displayValue: true
+            });
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            loadBottleData().then(() => {
+                lastBottleCount = userData.history.length;
+                listenForNewBottles();
+            });
+        });
+
+        // Logout function
+        window.logout = function() {
+            if (confirm('คุณต้องการออกจากระบบใช่หรือไม่?')) {
+                localStorage.clear();
+                signOut(auth).then(() => {
+                    alert('ออกจากระบบสำเร็จ');
+                    window.location.href = 'login.html';
+                }).catch((error) => {
+                    console.error('Error:', error);
+                    window.location.href = 'login.html';
+                });
+            }
+        }
+
+        // Barcode Modal functions
+        window.openBarcodeModal = function() {
+            const modal = document.getElementById('barcodeModal');
+            const studentId = userData.studentId;
+            
+            document.getElementById('modalStudentId').textContent = studentId;
+            
+            // Generate larger barcode in modal
+            JsBarcode('#barcodeModalSvg', studentId, {
+                format: 'CODE128',
+                width: 3,
+                height: 120,
+                displayValue: true,
+                fontSize: 20,
+                margin: 20
+            });
+            
+            modal.classList.add('active');
+        }
+
+        window.closeBarcodeModal = function() {
+            document.getElementById('barcodeModal').classList.remove('active');
+        }
+
+        // Close modal on background click
+        document.getElementById('barcodeModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeBarcodeModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeBarcodeModal();
+            }
+        });
     </script>
 </body>
 </html>
