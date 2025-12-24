@@ -507,7 +507,18 @@
 
         // Firebase
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, query, where, orderBy, limit, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import {
+            getFirestore,
+            collection,
+            query,
+            where,
+            orderBy,
+            limit,
+            getDocs,
+            onSnapshot,
+            doc,
+            getDoc
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         import { getAuth, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         const firebaseConfig = {
@@ -519,6 +530,8 @@
             appId: "1:690530427838:web:4cf6e8c7b33d7ec3bb35f3"
         };
 
+        const POINT_PER_BOTTLE = 1;
+        const POINTS_PER_HOUR = 100;
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
@@ -538,6 +551,15 @@
             thisWeekBottles: 0,
             history: []
         };
+
+        async function loadUserScore() {
+            const ref = doc(db, "users", localStudentId);
+            const snap = await getDoc(ref);
+            if (snap.exists()) {
+                return snap.data().score || 0;
+            }
+            return 0;
+        }
 
         let lastBottleCount = 0;
 
@@ -577,10 +599,13 @@
                 });
 
                 userData.history = bottles;
-                userData.totalBottles = bottles.reduce((sum, b) => sum + b.bottles, 0);
+                userData.score = userData.totalBottles * POINT_PER_BOTTLE;
+                userData.volunteerHours = Math.floor(userData.score / POINTS_PER_HOUR);
+                userData.remainingPoints = userData.score % POINTS_PER_HOUR;
                 userData.todayBottles = todayCount;
                 userData.thisWeekBottles = weekCount;
 
+                userData.score = await loadUserScore();
                 renderUI(userData);
             } catch (error) {
                 console.error("Error loading data:", error);
@@ -602,7 +627,7 @@
                 onSnapshot(q, (snapshot) => {
                     const newCount = snapshot.size;
                     if (lastBottleCount > 0 && newCount > lastBottleCount) {
-                        showToast("🎉 ตรวจพบขวดใหม่! +1 คะแนน");
+                        showToast(`🎉 +1 คะแนน (${userData.remainingPoints}/100)`);
                         playSound();
                     }
                     lastBottleCount = newCount;
@@ -668,9 +693,19 @@
 
                 <div class="card score-card">
                     <h3>🎁 คะแนนสะสม</h3>
-                    <div class="score-number">${userData.totalBottles}</div>
+                    <div class="score-number">${userData.score}</div>
                     <p>คะแนน (1 ขวด = 1 คะแนน)</p>
                 </div>
+                <div class="card">
+                    <h3 style="text-align:center;">🤝 ชั่วโมงจิตอาสา</h3>
+                    <div style="font-size:2.5rem;font-weight:700;color:#165b33;text-align:center;">
+                        ${userData.volunteerHours} ชั่วโมง
+                </div>
+                <p style="text-align:center;color:#6b7280;">
+                    เหลืออีก ${100 - userData.remainingPoints} คะแนน<br>
+                    จะได้เพิ่ม 1 ชั่วโมง
+                </p>
+            </div>
 
                 <div class="card">
                     <h3 style="text-align: center; margin-bottom: 16px;">📱 บาร์โค้ดของคุณ</h3>
